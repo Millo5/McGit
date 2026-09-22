@@ -97,4 +97,51 @@ public class GitCore {
         }
     }
 
+    public void sendStatus(CommandSender sender) {
+        TextColor color = TextColor.color(125, 20, 50);
+        TextColor color4 = TextColor.color(20, 125, 50);
+        TextColor color2 = TextColor.color(50, 50, 50);
+        TextColor color3 = TextColor.color(50, 150, 150);
+
+        TextComponent text = Component.text("Git Status").color(color2);
+
+        if (currentDiff.getBlockModifications().isEmpty()) {
+            text = text.append(
+                    Component.text("\nNo active changes.").color(color2)
+            );
+        } else {
+            int amount = currentDiff.getBlockModifications().size();
+            text = text.append(
+                    Component.text("\n"+amount).color(color3),
+                    Component.text(" changes to be committed:").color(color2)
+            );
+
+            int i = 0;
+            for (Location location : currentDiff.getBlockModifications().keySet()) {
+                if (i++ > 20) break;
+                BlockModification mod = currentDiff.getBlockModifications().get(location);
+
+                String locStr = " at " + location.getX() + " " + location.getY() + " " + location.getZ();
+
+                if (mod.getOldBlock() == null) {
+                    text = text.append(
+                            Component.text("\n  added: " + mod.getNewBlock().getMaterial().name() + locStr).color(color4)
+                    );
+                    continue;
+                }
+                if (mod.getNewBlock() == null) {
+                    text = text.append(
+                            Component.text("\n  removed: " + mod.getOldBlock().getMaterial().name() + locStr).color(color)
+                    );
+                    continue;
+                }
+                
+                text = text.append(
+                        Component.text("\n  replaced: " + mod.getOldBlock().getMaterial().name() + " with " + mod.getNewBlock().getMaterial().name() + locStr).color(color4)
+                );
+            }
+        }
+
+        sender.sendMessage(text);
+    }
 }
