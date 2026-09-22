@@ -18,6 +18,11 @@ public class CommandGit {
                                     McGit.getGitCore().displayDiff();
                                     return 1;
                                 }))
+                        .then(Commands.literal("status")
+                                .executes(ctx -> {
+                                    McGit.getGitCore().sendStatus(ctx.getSource().getSender());
+                                    return 1;
+                                }))
                         .build()
         );
 
