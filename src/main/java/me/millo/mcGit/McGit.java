@@ -1,14 +1,9 @@
 package me.millo.mcGit;
 
-import io.papermc.paper.command.brigadier.BasicCommand;
-import io.papermc.paper.plugin.lifecycle.event.LifecycleEvent;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.millo.mcGit.commands.CommandGit;
 import me.millo.mcGit.git.GitCore;
 import me.millo.mcGit.listeners.BlockChangeListener;
-import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class McGit extends JavaPlugin {
