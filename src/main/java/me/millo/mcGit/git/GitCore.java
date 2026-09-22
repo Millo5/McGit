@@ -1,10 +1,15 @@
 package me.millo.mcGit.git;
 
+import me.millo.mcGit.git.branch.Branch;
 import me.millo.mcGit.git.diff.BlockModification;
 import me.millo.mcGit.git.diff.WorldDiff;
 import me.millo.mcGit.utility.Broadcast;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -18,7 +23,9 @@ import java.util.ArrayList;
 public class GitCore {
 
     private final JavaPlugin plugin;
+
     private WorldDiff currentDiff;
+    private Branch branch;
 
     private ArrayList<Entity> diffEntities;
 
@@ -28,6 +35,7 @@ public class GitCore {
         this.plugin = plugin;
 
         currentDiff = new WorldDiff();
+        branch = new Branch("master", null);
     }
 
     public WorldDiff getCurrentDiff() {
@@ -98,12 +106,17 @@ public class GitCore {
     }
 
     public void sendStatus(CommandSender sender) {
-        TextColor color = TextColor.color(125, 20, 50);
-        TextColor color4 = TextColor.color(20, 125, 50);
-        TextColor color2 = TextColor.color(50, 50, 50);
-        TextColor color3 = TextColor.color(50, 150, 150);
+        TextColor color = TextColor.color(195, 40, 50);
+        TextColor color4 = TextColor.color(40, 195, 50);
+        TextColor color2 = TextColor.color(80, 80, 80);
+        TextColor color3 = TextColor.color(80, 150, 150);
 
         TextComponent text = Component.text("Git Status").color(color2);
+
+        text = text.append(
+                Component.text("\nCurrent Branch: ").color(color2),
+                Component.text(branch.getName()).color(color3)
+        );
 
         if (currentDiff.getBlockModifications().isEmpty()) {
             text = text.append(
@@ -135,7 +148,7 @@ public class GitCore {
                     );
                     continue;
                 }
-                
+
                 text = text.append(
                         Component.text("\n  replaced: " + mod.getOldBlock().getMaterial().name() + " with " + mod.getNewBlock().getMaterial().name() + locStr).color(color4)
                 );
