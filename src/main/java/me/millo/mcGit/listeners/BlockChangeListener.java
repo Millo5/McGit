@@ -10,6 +10,11 @@ public class BlockChangeListener implements Listener {
 
     @EventHandler
     public void blockPlace(BlockPlaceEvent event) {
+        if (McGit.getGitCore().isLocked()) {
+            event.setCancelled(true);
+            return;
+        }
+
         McGit.getGitCore().getCurrentDiff().setBlock(
                 event.getBlock().getLocation(),
                 null,
@@ -18,6 +23,11 @@ public class BlockChangeListener implements Listener {
 
     @EventHandler
     public void blockBreak(BlockBreakEvent event) {
+        if (McGit.getGitCore().isLocked()) {
+            event.setCancelled(true);
+            return;
+        }
+
         McGit.getGitCore().getCurrentDiff().setBlock(
                 event.getBlock().getLocation(),
                 event.getBlock(),

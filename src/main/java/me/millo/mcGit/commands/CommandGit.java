@@ -1,6 +1,7 @@
 package me.millo.mcGit.commands;
 
 import io.papermc.paper.command.brigadier.Commands;
+import me.millo.mcGit.McGit;
 
 public class CommandGit {
 
@@ -14,7 +15,7 @@ public class CommandGit {
                         })
                         .then(Commands.literal("diff")
                                 .executes(ctx -> {
-                                    ctx.getSource().getSender().sendMessage("Git diff:");
+                                    McGit.getGitCore().displayDiff();
                                     return 1;
                                 }))
                         .build()

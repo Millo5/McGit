@@ -1,4 +1,4 @@
-package me.millo.mcGit.git;
+package me.millo.mcGit.git.diff;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -20,6 +20,10 @@ public class WorldDiff {
         }
 
         blockModifications.put(location, new BlockModification(old, block));
+    }
+
+    public HashMap<Location, BlockModification> getBlockModifications() {
+        return blockModifications;
     }
 
 }
