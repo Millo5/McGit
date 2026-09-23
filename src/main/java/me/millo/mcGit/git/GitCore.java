@@ -1,6 +1,6 @@
 package me.millo.mcGit.git;
 
-import me.millo.mcGit.git.branch.Branch;
+import me.millo.mcGit.git.branch.BranchHandler;
 import me.millo.mcGit.git.diff.BlockModification;
 import me.millo.mcGit.git.diff.WorldDiff;
 import net.kyori.adventure.text.Component;
@@ -8,22 +8,19 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public class GitCore {
 
-    private final JavaPlugin plugin;
+    private final WorldDiff currentDiff;
+    private final BranchHandler branchHandler;
 
-    private WorldDiff currentDiff;
-    private Branch branch;
+    private GitState state = GitState.READY;
 
-    private boolean lock = false;
+    public GitCore() {
+        this.branchHandler = new BranchHandler();
 
-    public GitCore(JavaPlugin plugin) {
-        this.plugin = plugin;
-
-        currentDiff = new WorldDiff();
-        branch = new Branch("master", null);
+        currentDiff = new WorldDiff(this);
+        new GitInitializer(this).run();
     }
 
     public void sendStatus(CommandSender sender) {
@@ -36,7 +33,7 @@ public class GitCore {
 
         text = text.append(
                 Component.text("\nCurrent Branch: ").color(color2),
-                Component.text(branch.getName()).color(color3)
+                Component.text(branchHandler.getBranch().getName()).color(color3)
         );
 
         if (currentDiff.getBlockModifications().isEmpty()) {
@@ -83,11 +80,19 @@ public class GitCore {
         return currentDiff;
     }
 
-    public boolean isLocked() {
-        return lock;
+    public void setState(GitState state) {
+        this.state = state;
     }
 
-    public void setLock(boolean lock) {
-        this.lock = lock;
+    public boolean stateEquals(GitState state) {
+        return this.state == state;
+    }
+
+    public BranchHandler getBranchHandler() {
+        return branchHandler;
+    }
+
+    public boolean isNotReady() {
+        return state != GitState.READY;
     }
 }

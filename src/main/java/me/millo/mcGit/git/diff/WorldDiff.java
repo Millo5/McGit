@@ -1,7 +1,7 @@
 package me.millo.mcGit.git.diff;
 
-import me.millo.mcGit.McGit;
 import me.millo.mcGit.git.GitCore;
+import me.millo.mcGit.git.GitState;
 import me.millo.mcGit.utility.Broadcast;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -19,10 +19,12 @@ import java.util.HashMap;
 public class WorldDiff {
 
     private final HashMap<Location, BlockModification> blockModifications;
-    private boolean displayed = false;
     private ArrayList<Entity> diffEntities;
+    private GitCore core;
 
-    public WorldDiff() {
+    public WorldDiff(GitCore core) {
+        this.core = core;
+
         blockModifications = new HashMap<>();
     }
 
@@ -41,14 +43,10 @@ public class WorldDiff {
     }
 
     public void toggleDisplay() {
-        GitCore core = McGit.getGitCore();
-        if (core.isLocked()) return;
-
         WorldDiff currentDiff = core.getCurrentDiff();
 
-        if (displayed) {
-            displayed = false;
-            core.setLock(false);
+        if (core.stateEquals(GitState.DISPLAY)) {
+            core.setState(GitState.READY);
             Broadcast.message("Hiding diff.");
 
             diffEntities.forEach(Entity::remove);
@@ -66,7 +64,8 @@ public class WorldDiff {
             return;
         }
 
-        core.setLock(true);
+        if (core.isNotReady()) return;
+        core.setState(GitState.DISPLAY);
         Broadcast.message("Viewing diff...");
 
         diffEntities = new ArrayList<>();

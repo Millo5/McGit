@@ -26,4 +26,9 @@ public class CommitHash {
         CommitHash that = (CommitHash) o;
         return Objects.equals(uuid, that.uuid);
     }
+
+    @Override
+    public String toString() {
+        return uuid.toString();
+    }
 }

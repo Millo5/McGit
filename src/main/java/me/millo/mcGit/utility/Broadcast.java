@@ -19,8 +19,8 @@ public class Broadcast {
 
         for (Player player : Bukkit.getServer().getOnlinePlayers()) {
             player.sendMessage(
-                    Component.text("[GIT] ").color(TextColor.color(125, 20, 50))
-                            .append(Component.text(message.toString()).color(TextColor.color(50, 50, 50))));
+                    Component.text("[GIT] ").color(TextColor.color(195, 50, 90))
+                            .append(Component.text(message.toString()).color(TextColor.color(80, 80, 80))));
         }
     }
 }
