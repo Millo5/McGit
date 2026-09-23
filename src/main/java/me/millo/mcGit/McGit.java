@@ -14,9 +14,9 @@ public final class McGit extends JavaPlugin {
     public void onEnable() {
         System.out.println("McGit has been enabled.");
 
-        gitCore = new GitCore(this);
+        gitCore = new GitCore();
 
-        getServer().getPluginManager().registerEvents(new BlockChangeListener(), this);
+        getServer().getPluginManager().registerEvents(new BlockChangeListener(gitCore), this);
 
         this.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             CommandGit.register(event.registrar());

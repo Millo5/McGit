@@ -1,109 +1,40 @@
 package me.millo.mcGit.git;
 
+import me.millo.mcGit.git.branch.BranchHandler;
 import me.millo.mcGit.git.diff.BlockModification;
 import me.millo.mcGit.git.diff.WorldDiff;
-import me.millo.mcGit.utility.Broadcast;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.entity.BlockDisplay;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.Transformation;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
-
-import java.util.ArrayList;
+import org.bukkit.command.CommandSender;
 
 public class GitCore {
 
-    private final JavaPlugin plugin;
-    private WorldDiff currentDiff;
+    private final WorldDiff currentDiff;
+    private final BranchHandler branchHandler;
 
-    private ArrayList<Entity> diffEntities;
+    private GitState state = GitState.READY;
 
-    private boolean lock = false;
+    public GitCore() {
+        this.branchHandler = new BranchHandler();
 
-    public GitCore(JavaPlugin plugin) {
-        this.plugin = plugin;
-
-        currentDiff = new WorldDiff();
-    }
-
-    public WorldDiff getCurrentDiff() {
-        return currentDiff;
-    }
-
-    public boolean isLocked() {
-        return lock;
-    }
-
-    public void displayDiff() {
-        if (lock) {
-            lock = false;
-            Broadcast.message("Hiding diff.");
-
-            diffEntities.forEach(Entity::remove);
-
-            for (final Location location : currentDiff.getBlockModifications().keySet()) {
-                BlockModification change = currentDiff.getBlockModifications().get(location);
-                var world = location.getWorld();
-                if (change.getNewBlock() == null) {
-                    world.getBlockAt(location).setType(Material.AIR);
-                    continue;
-                }
-                world.getBlockAt(location).setType(change.getNewBlock().getMaterial());
-            }
-
-            return;
-        }
-
-        lock = true;
-        Broadcast.message("Viewing diff...");
-
-        diffEntities = new ArrayList<>();
-        for (final Location location : currentDiff.getBlockModifications().keySet()) {
-            BlockModification change = currentDiff.getBlockModifications().get(location);
-            Broadcast.message(location);
-
-            var world = location.getWorld();
-            world.getBlockAt(location).setType(Material.AIR);
-
-            if (change.getOldBlock() != null) {
-                Entity entity = world.spawnEntity(location.clone(), EntityType.BLOCK_DISPLAY);
-                diffEntities.add(entity);
-                BlockDisplay disp = (BlockDisplay) entity;
-                disp.setBlock(change.getOldBlock());
-                disp.setTransformation(new Transformation(
-                        new Vector3f(0.25f, 0f, 0.25f),
-                        new Quaternionf(0, 0, 0 , 1),
-                        new Vector3f(0.5f),
-                        new Quaternionf(0, 0, 0 , 1)
-                ));
-            }
-
-            if (change.getNewBlock() != null) {
-                Entity entity = world.spawnEntity(location, EntityType.BLOCK_DISPLAY);
-                diffEntities.add(entity);
-                BlockDisplay disp = (BlockDisplay) entity;
-                disp.setBlock(change.getNewBlock());
-                disp.setTransformation(new Transformation(
-                        new Vector3f(0.25f, 0.5f, 0.25f),
-                        new Quaternionf(0, 0, 0 , 1),
-                        new Vector3f(0.5f),
-                        new Quaternionf(0, 0, 0 , 1)
-                ));
-            }
-        }
+        currentDiff = new WorldDiff(this);
+        new GitInitializer(this).run();
     }
 
     public void sendStatus(CommandSender sender) {
-        TextColor color = TextColor.color(125, 20, 50);
-        TextColor color4 = TextColor.color(20, 125, 50);
-        TextColor color2 = TextColor.color(50, 50, 50);
-        TextColor color3 = TextColor.color(50, 150, 150);
+        TextColor color = TextColor.color(195, 70, 90);
+        TextColor color4 = TextColor.color(70, 195, 90);
+        TextColor color2 = TextColor.color(80, 80, 80);
+        TextColor color3 = TextColor.color(80, 150, 150);
 
         TextComponent text = Component.text("Git Status").color(color2);
+
+        text = text.append(
+                Component.text("\nCurrent Branch: ").color(color2),
+                Component.text(branchHandler.getBranch().getName()).color(color3)
+        );
 
         if (currentDiff.getBlockModifications().isEmpty()) {
             text = text.append(
@@ -143,5 +74,25 @@ public class GitCore {
         }
 
         sender.sendMessage(text);
+    }
+
+    public WorldDiff getCurrentDiff() {
+        return currentDiff;
+    }
+
+    public void setState(GitState state) {
+        this.state = state;
+    }
+
+    public boolean stateEquals(GitState state) {
+        return this.state == state;
+    }
+
+    public BranchHandler getBranchHandler() {
+        return branchHandler;
+    }
+
+    public boolean isNotReady() {
+        return state != GitState.READY;
     }
 }
