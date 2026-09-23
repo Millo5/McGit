@@ -15,7 +15,7 @@ public class CommandGit {
                         })
                         .then(Commands.literal("diff")
                                 .executes(ctx -> {
-                                    McGit.getGitCore().displayDiff();
+                                    McGit.getGitCore().getCurrentDiff().toggleDisplay();
                                     return 1;
                                 }))
                         .then(Commands.literal("status")
