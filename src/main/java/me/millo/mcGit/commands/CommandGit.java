@@ -6,10 +6,11 @@ import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import me.millo.mcGit.McGit;
+import me.millo.mcGit.git.GitCore;
 import me.millo.mcGit.git.branch.Branch;
 import me.millo.mcGit.git.branch.BranchHandler;
-import me.millo.mcGit.utility.Broadcast;
 
+import java.io.IOException;
 import java.util.Optional;
 
 public class CommandGit {
@@ -33,6 +34,9 @@ public class CommandGit {
                                     return 1;
                                 }))
                         .then(branchSubCommand())
+                        .then(Commands.literal("commit")
+                                .then(Commands.argument("message", StringArgumentType.greedyString())
+                                    .executes(CommandGit::commit)))
                         .build()
         );
     }
@@ -78,6 +82,17 @@ public class CommandGit {
         }
 
         branches.setBranch(found.get());
+        return 1;
+    }
+
+    private static int commit(CommandContext<CommandSourceStack> ctx) {
+        String message = StringArgumentType.getString(ctx, "message");
+        GitCore core = McGit.getGitCore();
+        try {
+            core.getCurrentDiff().commit(message, ctx.getSource().getSender().getName());
+        } catch (IOException e) {
+            ctx.getSource().getSender().sendMessage("Failed to save commit.");
+        }
         return 1;
     }
 }

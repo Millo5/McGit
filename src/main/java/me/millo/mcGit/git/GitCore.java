@@ -8,6 +8,12 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.util.Transformation;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 public class GitCore {
 
@@ -24,6 +30,27 @@ public class GitCore {
     }
 
     public void sendStatus(CommandSender sender) {
+
+        for (Location location : currentDiff.getBlockModifications().keySet()) {
+            BlockModification mod = currentDiff.getBlockModifications().get(location);
+
+            var world = location.getWorld();
+            if (mod.getNewBlock() == null) continue;
+
+            Entity entity = world.spawnEntity(location, EntityType.BLOCK_DISPLAY);
+            BlockDisplay display = (BlockDisplay) entity;
+            display.setBlock(mod.getNewBlock());
+            display.setGlowing(true);
+            display.setTransformation(new Transformation(
+                    new Vector3f(0, 0, 0),
+                    new Quaternionf(0, 0, 0 , 1),
+                    new Vector3f(0.999f),
+                    new Quaternionf(0, 0, 0 , 1)
+            ));
+        }
+
+        if (true) return;
+
         TextColor color = TextColor.color(195, 70, 90);
         TextColor color4 = TextColor.color(70, 195, 90);
         TextColor color2 = TextColor.color(80, 80, 80);

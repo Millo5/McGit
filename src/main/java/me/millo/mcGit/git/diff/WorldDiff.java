@@ -2,6 +2,10 @@ package me.millo.mcGit.git.diff;
 
 import me.millo.mcGit.git.GitCore;
 import me.millo.mcGit.git.GitState;
+import me.millo.mcGit.git.branch.Branch;
+import me.millo.mcGit.git.commit.Commit;
+import me.millo.mcGit.git.commit.CommitChanges;
+import me.millo.mcGit.git.commit.CommitHash;
 import me.millo.mcGit.utility.Broadcast;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -13,6 +17,7 @@ import org.bukkit.util.Transformation;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -38,8 +43,35 @@ public class WorldDiff {
         blockModifications.put(location, new BlockModification(old, block));
     }
 
-    public HashMap<Location, BlockModification> getBlockModifications() {
-        return blockModifications;
+    public void commit(String name, String author) throws IOException {
+        if (core.getCurrentDiff().getBlockModifications().isEmpty()) {
+            Broadcast.message("There are no changes to commit.");
+            return;
+        }
+
+        Branch branch = core.getBranchHandler().getBranch();
+
+        Location[] locations = new Location[blockModifications.size()];
+        BlockModification[] modifications = new BlockModification[blockModifications.size()];
+        int i = 0;
+        for (final Location location : blockModifications.keySet()) {
+            BlockModification change = blockModifications.get(location);
+            locations[i] = location;
+            modifications[i++] = change;
+        }
+
+        CommitChanges changes = new CommitChanges(locations, modifications);
+        Commit commit = new Commit(
+                name,
+                new CommitHash[]{branch.getHeadHash()},
+                author,
+                changes
+        );
+
+        commit.save();
+        branch.setHead(commit.getHash());
+
+        blockModifications.clear();
     }
 
     public void toggleDisplay() {
@@ -103,4 +135,10 @@ public class WorldDiff {
             }
         }
     }
+
+
+    public HashMap<Location, BlockModification> getBlockModifications() {
+        return blockModifications;
+    }
+
 }
