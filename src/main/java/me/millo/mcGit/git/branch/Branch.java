@@ -15,17 +15,6 @@ public class Branch {
 
     public Branch(String name, CommitHash head) {
         this.name = name;
-
-        if (head == null) {
-            Commit initialCommit = new Commit("Initial Commit", new CommitHash[0], "McGit", new CommitChanges(new Location[0], new BlockModification[0]));
-            try {
-                initialCommit.save();
-                head = initialCommit.getHash();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
         this.head = head;
     }
 

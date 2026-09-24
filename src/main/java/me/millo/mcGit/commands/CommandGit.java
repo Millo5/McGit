@@ -9,9 +9,13 @@ import me.millo.mcGit.McGit;
 import me.millo.mcGit.git.GitCore;
 import me.millo.mcGit.git.branch.Branch;
 import me.millo.mcGit.git.branch.BranchHandler;
+import me.millo.mcGit.git.commit.Commit;
+import me.millo.mcGit.git.commit.CommitHash;
+import me.millo.mcGit.utility.Broadcast;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.UUID;
 
 public class CommandGit {
 
@@ -37,6 +41,32 @@ public class CommandGit {
                         .then(Commands.literal("commit")
                                 .then(Commands.argument("message", StringArgumentType.greedyString())
                                     .executes(CommandGit::commit)))
+                        .then(Commands.literal("log")
+                                .executes(CommandGit::log))
+                        .then(Commands.literal("apply")
+                                .then(Commands.argument("hash", StringArgumentType.word())
+                                        .executes(ctx -> {
+                                            String hash = StringArgumentType.getString(ctx, "hash");
+                                            try {
+                                                Commit commit = Commit.fromHash(new CommitHash(UUID.fromString(hash)));
+                                                commit.apply();
+                                            } catch (IOException e) {
+                                                Broadcast.message("Commit " + hash + " not found.");
+                                            }
+                                            return 1;
+                                        })))
+                        .then(Commands.literal("revert")
+                                .then(Commands.argument("hash", StringArgumentType.word())
+                                        .executes(ctx -> {
+                                            String hash = StringArgumentType.getString(ctx, "hash");
+                                            try {
+                                                Commit commit = Commit.fromHash(new CommitHash(UUID.fromString(hash)));
+                                                commit.revert();
+                                            } catch (IOException e) {
+                                                Broadcast.message("Commit " + hash + " not found.");
+                                            }
+                                            return 1;
+                                        })))
                         .build()
         );
     }
@@ -94,5 +124,26 @@ public class CommandGit {
             ctx.getSource().getSender().sendMessage("Failed to save commit.");
         }
         return 1;
+    }
+
+    private static int log(CommandContext<CommandSourceStack> ctx) {
+        CommitHash head = McGit.getGitCore().getBranchHandler().getBranch().getHeadHash();
+        commitLog(head, 0);
+        return 1;
+    }
+
+    private static void commitLog(CommitHash hash, int depth) {
+        try {
+            Commit commit = Commit.fromHash(hash);
+            String depthStr = "  ".repeat(depth);
+            Broadcast.message(depthStr + commit.getMessage(), depthStr + hash);
+
+            if (commit.getParents().length > 1) depth++;
+            for (CommitHash parent : commit.getParents()) {
+                commitLog(parent, depth);
+            }
+        } catch (IOException e) {
+            Broadcast.message(hash.toString(), "COULD NOT FIND COMMIT");
+        }
     }
 }

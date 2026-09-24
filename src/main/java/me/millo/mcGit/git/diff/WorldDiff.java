@@ -70,6 +70,7 @@ public class WorldDiff {
 
         commit.save();
         branch.setHead(commit.getHash());
+        core.getBranchHandler().save();
 
         blockModifications.clear();
     }

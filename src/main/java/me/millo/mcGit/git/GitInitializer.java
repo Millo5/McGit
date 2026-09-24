@@ -5,7 +5,11 @@ import com.google.gson.stream.JsonReader;
 import me.millo.mcGit.files.FileBank;
 import me.millo.mcGit.git.branch.Branch;
 import me.millo.mcGit.git.branch.BranchHandler;
+import me.millo.mcGit.git.commit.Commit;
+import me.millo.mcGit.git.commit.CommitChanges;
 import me.millo.mcGit.git.commit.CommitHash;
+import me.millo.mcGit.git.diff.BlockModification;
+import org.bukkit.Location;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -29,9 +33,24 @@ public class GitInitializer {
         try {
             setupRoot();
             setupBranches();
+            setupInitialCommit();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void setupInitialCommit() {
+        CommitHash head = core.getBranchHandler().getBranch().getHeadHash();
+        if (head == null) {
+            Commit initialCommit = new Commit("Initial Commit", new CommitHash[0], "McGit", new CommitChanges(new Location[0], new BlockModification[0]));
+            try {
+                initialCommit.save();
+                core.getBranchHandler().getBranch().setHead(initialCommit.getHash());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
     }
 
     private void setupRoot() throws IOException {
@@ -48,7 +67,9 @@ public class GitInitializer {
     private void setupBranches() throws IOException {
         File file = FileBank.getBranchesFile();
 
-        if (!file.exists()) return;
+        if (!file.exists()) {
+            return;
+        }
 
         try (FileReader reader = new FileReader(file)) {
             JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
