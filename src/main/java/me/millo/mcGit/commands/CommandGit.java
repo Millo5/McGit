@@ -46,25 +46,15 @@ public class CommandGit {
                         .then(Commands.literal("apply")
                                 .then(Commands.argument("hash", StringArgumentType.word())
                                         .executes(ctx -> {
-                                            String hash = StringArgumentType.getString(ctx, "hash");
-                                            try {
-                                                Commit commit = Commit.fromHash(new CommitHash(UUID.fromString(hash)));
-                                                commit.apply();
-                                            } catch (IOException e) {
-                                                Broadcast.message("Commit " + hash + " not found.");
-                                            }
+                                            Commit commit = CommitArgumentType.getCommit(ctx, "hash");
+                                            commit.apply();
                                             return 1;
                                         })))
                         .then(Commands.literal("revert")
-                                .then(Commands.argument("hash", StringArgumentType.word())
+                                .then(Commands.argument("hash", new CommitArgumentType())
                                         .executes(ctx -> {
-                                            String hash = StringArgumentType.getString(ctx, "hash");
-                                            try {
-                                                Commit commit = Commit.fromHash(new CommitHash(UUID.fromString(hash)));
-                                                commit.revert();
-                                            } catch (IOException e) {
-                                                Broadcast.message("Commit " + hash + " not found.");
-                                            }
+                                            Commit commit = CommitArgumentType.getCommit(ctx, "hash");
+                                            commit.revert();
                                             return 1;
                                         })))
                         .build()

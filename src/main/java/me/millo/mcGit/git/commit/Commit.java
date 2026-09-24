@@ -11,11 +11,15 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public class Commit {
 
     private static final ChangesSerializer SERIALIZER = new SimpleChangesSerializer();
+    private static final ArrayList<String> foundHashesCache = new ArrayList<>();
+    private static boolean cacheDirty = false;
 
     private final CommitHash hash;
     private final String message;
@@ -125,4 +129,19 @@ public class Commit {
         return parents;
     }
 
+    public static ArrayList<String> getFoundHashes() {
+        if (!cacheDirty) return foundHashesCache;
+        cacheDirty = false;
+
+        foundHashesCache.clear();
+        try (Stream<Path> files = Files.list(FileBank.getCommitFolder())){
+            for (Path path : files.toList()) {
+                foundHashesCache.add(path.toFile().getName());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return foundHashesCache;
+    }
 }
