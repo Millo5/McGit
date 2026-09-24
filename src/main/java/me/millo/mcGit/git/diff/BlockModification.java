@@ -12,6 +12,11 @@ public class BlockModification {
         newBlock = now == null ? null : now.getBlockData();
     }
 
+    public BlockModification(BlockData blockData, BlockData blockData1) {
+        oldBlock = blockData;
+        newBlock = blockData1;
+    }
+
     public BlockData getOldBlock() {
         return oldBlock;
     }
@@ -21,6 +26,6 @@ public class BlockModification {
     }
 
     public void setNewBlock(Block newBlock) {
-        this.newBlock = newBlock.getBlockData();
+        this.newBlock = newBlock == null ? null : newBlock.getBlockData();
     }
 }
