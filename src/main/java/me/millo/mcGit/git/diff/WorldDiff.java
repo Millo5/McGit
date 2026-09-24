@@ -25,7 +25,7 @@ public class WorldDiff {
 
     private final HashMap<Location, BlockModification> blockModifications;
     private ArrayList<Entity> diffEntities;
-    private GitCore core;
+    private final GitCore core;
 
     public WorldDiff(GitCore core) {
         this.core = core;

@@ -1,10 +1,8 @@
 package me.millo.mcGit.git;
 
 import com.google.gson.*;
-import com.google.gson.stream.JsonReader;
 import me.millo.mcGit.files.FileBank;
 import me.millo.mcGit.git.branch.Branch;
-import me.millo.mcGit.git.branch.BranchHandler;
 import me.millo.mcGit.git.commit.Commit;
 import me.millo.mcGit.git.commit.CommitChanges;
 import me.millo.mcGit.git.commit.CommitHash;
@@ -12,13 +10,11 @@ import me.millo.mcGit.git.diff.BlockModification;
 import org.bukkit.Location;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.UUID;
 
 public class GitInitializer {

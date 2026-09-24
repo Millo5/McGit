@@ -1,12 +1,6 @@
 package me.millo.mcGit.git.branch;
 
-import me.millo.mcGit.git.commit.Commit;
-import me.millo.mcGit.git.commit.CommitChanges;
 import me.millo.mcGit.git.commit.CommitHash;
-import me.millo.mcGit.git.diff.BlockModification;
-import org.bukkit.Location;
-
-import java.io.IOException;
 
 public class Branch {
 
