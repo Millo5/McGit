@@ -14,8 +14,6 @@ import me.millo.mcGit.git.commit.CommitHash;
 import me.millo.mcGit.utility.Broadcast;
 
 import java.io.IOException;
-import java.util.Optional;
-import java.util.UUID;
 
 public class CommandGit {
 
@@ -44,7 +42,7 @@ public class CommandGit {
                         .then(Commands.literal("log")
                                 .executes(CommandGit::log))
                         .then(Commands.literal("apply")
-                                .then(Commands.argument("hash", StringArgumentType.word())
+                                .then(Commands.argument("hash", new CommitArgumentType())
                                         .executes(ctx -> {
                                             Commit commit = CommitArgumentType.getCommit(ctx, "hash");
                                             commit.apply();
@@ -57,6 +55,9 @@ public class CommandGit {
                                             commit.revert();
                                             return 1;
                                         })))
+                        .then(Commands.literal("rollback")
+                                .then(Commands.argument("commit", new CommitArgumentType(true))
+                                        .executes(CommandGit::rollback)))
                         .build()
         );
     }
@@ -67,7 +68,7 @@ public class CommandGit {
                         .then(Commands.argument("name", StringArgumentType.word())
                             .executes(CommandGit::branchCreate)))
                 .then(Commands.literal("checkout")
-                        .then(Commands.argument("name", StringArgumentType.word())
+                        .then(Commands.argument("branch", new BranchArgumentType())
                             .executes(CommandGit::branchCheckout)))
                 .then(Commands.literal("list")
                         .executes(ctx -> {
@@ -92,16 +93,9 @@ public class CommandGit {
     }
 
     private static int branchCheckout(CommandContext<CommandSourceStack> ctx) {
-        String name = StringArgumentType.getString(ctx, "name");
+        Branch branch = BranchArgumentType.getBranch(ctx, "branch");
         BranchHandler branches = McGit.getGitCore().getBranchHandler();
-
-        Optional<Branch> found = branches.getBranchByName(name);
-        if (found.isEmpty()) {
-            ctx.getSource().getSender().sendMessage("A branch with this name does not exist!");
-            return 1;
-        }
-
-        branches.setBranch(found.get());
+        branches.setBranch(branch);
         return 1;
     }
 
@@ -135,5 +129,29 @@ public class CommandGit {
         } catch (IOException e) {
             Broadcast.message(hash.toString(), "COULD NOT FIND COMMIT");
         }
+    }
+
+    private static int rollback(CommandContext<CommandSourceStack> ctx) {
+        Commit commit = CommitArgumentType.getCommit(ctx, "commit");
+        Branch branch = McGit.getGitCore().getBranchHandler().getBranch();
+
+        if (!branch.getTrail().contains(commit.getHash())) {
+            Broadcast.message("Commit not in branch history");
+            return 0;
+        }
+
+        for (CommitHash commitHash : branch.getTrail()) {
+            if (commitHash.equals(commit.getHash())) break;
+            try {
+                Commit c = Commit.fromHash(commitHash);
+                c.revert();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        branch.setHead(commit.getHash());
+
+        return 1;
     }
 }

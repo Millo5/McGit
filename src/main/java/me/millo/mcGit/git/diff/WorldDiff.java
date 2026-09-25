@@ -88,10 +88,10 @@ public class WorldDiff {
                 BlockModification change = currentDiff.getBlockModifications().get(location);
                 var world = location.getWorld();
                 if (change.getNewBlock() == null) {
-                    world.getBlockAt(location).setType(Material.AIR);
+                    world.getBlockAt(location).setType(Material.AIR, false);
                     continue;
                 }
-                world.getBlockAt(location).setType(change.getNewBlock().getMaterial());
+                world.getBlockAt(location).setBlockData(change.getNewBlock(), false);
             }
 
             return;
@@ -104,7 +104,6 @@ public class WorldDiff {
         diffEntities = new ArrayList<>();
         for (final Location location : currentDiff.getBlockModifications().keySet()) {
             BlockModification change = currentDiff.getBlockModifications().get(location);
-            Broadcast.message(location);
 
             var world = location.getWorld();
             world.getBlockAt(location).setType(Material.AIR);

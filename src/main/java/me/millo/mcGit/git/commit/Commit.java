@@ -39,6 +39,8 @@ public class Commit {
         this.timestamp = timestamp;
         this.author = author;
         this.changes = changes;
+
+        dirtyCache();
     }
 
     public CommitHash getHash() {
@@ -76,6 +78,8 @@ public class Commit {
                     .create()
                     .toJson(root, writer);
         }
+
+        dirtyCache();
     }
 
     public static Commit fromHash(CommitHash hash) throws IOException {
@@ -111,13 +115,13 @@ public class Commit {
 
     public void revert() {
         for (int i = 0; i < changes.locations().length; i++) {
-            changes.locations()[i].getBlock().setBlockData(changes.modifications()[i].getOldBlock());
+            changes.locations()[i].getBlock().setBlockData(changes.modifications()[i].getOldBlock(), false);
         }
     }
 
     public void apply() {
         for (int i = 0; i < changes.locations().length; i++) {
-            changes.locations()[i].getBlock().setBlockData(changes.modifications()[i].getNewBlock());
+            changes.locations()[i].getBlock().setBlockData(changes.modifications()[i].getNewBlock(), false);
         }
     }
 
@@ -127,6 +131,18 @@ public class Commit {
 
     public CommitHash[] getParents() {
         return parents;
+    }
+
+    public void dirtyCache() {
+        cacheDirty = true;
+    }
+
+    public boolean parentsContain(CommitHash hash) throws IOException {
+        for (CommitHash parent : parents) {
+            if (parent == hash) return true;
+            return Commit.fromHash(parent).parentsContain(hash);
+        }
+        return false;
     }
 
     public static ArrayList<String> getFoundHashes() {
