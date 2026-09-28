@@ -79,7 +79,7 @@ public class WorldDiff {
         WorldDiff currentDiff = core.getCurrentDiff();
 
         if (core.stateEquals(GitState.DISPLAY)) {
-            core.setState(GitState.READY);
+            core.setState(GitState.IDLE);
             Broadcast.message("Hiding diff.");
 
             diffEntities.forEach(Entity::remove);
@@ -97,7 +97,7 @@ public class WorldDiff {
             return;
         }
 
-        if (core.isNotReady()) return;
+        if (core.isIdle()) return;
         core.setState(GitState.DISPLAY);
         Broadcast.message("Viewing diff...");
 

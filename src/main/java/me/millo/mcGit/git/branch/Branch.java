@@ -31,6 +31,32 @@ public class Branch {
 
     public void setHead(CommitHash head) {
         this.head = head;
+        trail = null;
+    }
+
+    public ArrayList<CommitHash> getTrail(CommitHash target) {
+        ArrayList<CommitHash> commits = new ArrayList<>();
+
+        CommitHash current = head;
+
+        for (int i = 0; i < 50; i++) {
+            if (current.equals(target)) return commits;
+
+            commits.add(current);
+
+            try {
+                Commit commit = Commit.fromHash(current);
+                if (commit.getParents().length == 0) {
+                    throw new RuntimeException("Commit not found in parent history.");
+                }
+                current = commit.getParents()[0];
+            } catch (IOException e) {
+                throw new RuntimeException(e); // TODO: specific errors
+            }
+        }
+
+        throw new RuntimeException("Maximum tries exceeded");
+
     }
 
     public ArrayList<CommitHash> getTrail() {
@@ -47,6 +73,7 @@ public class Branch {
             try {
                 Commit commit = Commit.fromHash(current);
                 trail.addAll(Arrays.asList(commit.getParents()));
+                remaining.addAll(Arrays.asList(commit.getParents()));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

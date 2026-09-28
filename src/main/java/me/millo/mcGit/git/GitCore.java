@@ -6,7 +6,6 @@ import me.millo.mcGit.git.diff.WorldDiff;
 import me.millo.mcGit.utility.TextColors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.BlockDisplay;
@@ -21,7 +20,7 @@ public class GitCore {
     private final WorldDiff currentDiff;
     private final BranchHandler branchHandler;
 
-    private GitState state = GitState.READY;
+    private GitState state = GitState.IDLE;
 
     public GitCore() {
         this.branchHandler = new BranchHandler();
@@ -87,7 +86,7 @@ public class GitCore {
         return branchHandler;
     }
 
-    public boolean isNotReady() {
-        return state != GitState.READY;
+    public boolean isIdle() {
+        return state != GitState.IDLE;
     }
 }

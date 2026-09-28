@@ -160,4 +160,9 @@ public class Commit {
 
         return foundHashesCache;
     }
+
+    @Override
+    public String toString() {
+        return message + "[" + hash + "]";
+    }
 }

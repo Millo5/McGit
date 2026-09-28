@@ -119,8 +119,8 @@ public class CommandGit {
     private static void commitLog(CommitHash hash, int depth) {
         try {
             Commit commit = Commit.fromHash(hash);
-            String depthStr = "  ".repeat(depth);
-            Broadcast.message(depthStr + commit.getMessage(), depthStr + hash);
+            String depthStr = "|  ".repeat(depth);
+            Broadcast.message(depthStr + commit, depthStr + hash);
 
             if (commit.getParents().length > 1) depth++;
             for (CommitHash parent : commit.getParents()) {
@@ -135,15 +135,12 @@ public class CommandGit {
         Commit commit = CommitArgumentType.getCommit(ctx, "commit");
         Branch branch = McGit.getGitCore().getBranchHandler().getBranch();
 
-        if (!branch.getTrail().contains(commit.getHash())) {
-            Broadcast.message("Commit not in branch history");
-            return 0;
-        }
+        Broadcast.message("Rolling " + branch.getName() + " back to " + commit);
 
-        for (CommitHash commitHash : branch.getTrail()) {
-            if (commitHash.equals(commit.getHash())) break;
+        for (CommitHash commitHash : branch.getTrail(commit.getHash())) {
             try {
                 Commit c = Commit.fromHash(commitHash);
+                Broadcast.message(" | -" + c);
                 c.revert();
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -151,7 +148,6 @@ public class CommandGit {
         }
 
         branch.setHead(commit.getHash());
-
         return 1;
     }
 }
