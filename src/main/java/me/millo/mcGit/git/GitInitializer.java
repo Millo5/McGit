@@ -46,7 +46,6 @@ public class GitInitializer {
                 throw new RuntimeException(e);
             }
         }
-
     }
 
     private void setupRoot() throws IOException {

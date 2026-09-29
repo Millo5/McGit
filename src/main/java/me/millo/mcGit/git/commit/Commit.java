@@ -1,6 +1,7 @@
 package me.millo.mcGit.git.commit;
 
 import com.google.gson.*;
+import me.millo.mcGit.McGit;
 import me.millo.mcGit.exceptions.CommitNotFoundException;
 import me.millo.mcGit.files.FileBank;
 import me.millo.mcGit.git.commit.serializer.ChangesSerializer;
@@ -19,7 +20,6 @@ import java.util.stream.Stream;
 
 public class Commit {
 
-    private static final ChangesSerializer SERIALIZER = new SimpleChangesSerializer();
     private static final ArrayList<String> foundHashesCache = new ArrayList<>();
     private static boolean cacheDirty = false;
 
@@ -71,7 +71,7 @@ public class Commit {
         }
         root.add("parents", parents);
 
-        SERIALIZER.serialize(root, this.changes);
+        McGit.SERIALIZER.serialize(root, this.changes);
 
         try (Writer writer = Files.newBufferedWriter(target)) {
             new GsonBuilder()
@@ -103,7 +103,7 @@ public class Commit {
             }
 
 
-            CommitChanges changes = SERIALIZER.deserialize(json);
+            CommitChanges changes = McGit.SERIALIZER.deserialize(json);
             return new Commit(
                     new CommitHash(UUID.fromString(json.get("hash").getAsString())),
                     json.get("message").getAsString(),
@@ -113,7 +113,7 @@ public class Commit {
                     changes
             );
         } catch (IOException e) {
-            e.printStackTrace();
+            Broadcast.message("Failed to load commit", e);
             throw new RuntimeException();
         }
     }

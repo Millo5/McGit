@@ -10,6 +10,7 @@ public class FileBank {
     private final static String ROOT = ".mcgit";
     private final static String COMMITS = "commits";
     private final static String BRANCHES = "branches.json";
+    private final static String DIFF = "diff.json";
 
     public static Path getGitFolder() {
         return Bukkit.getPluginsFolder().toPath().resolve(ROOT);
@@ -21,6 +22,10 @@ public class FileBank {
 
     public static Path getCommitFolder() {
         return getGitFolder().resolve(COMMITS);
+    }
+
+    public static File getDiffFile() {
+        return getGitFolder().resolve(DIFF).toFile();
     }
 
 }

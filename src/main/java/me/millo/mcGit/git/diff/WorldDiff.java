@@ -1,5 +1,10 @@
 package me.millo.mcGit.git.diff;
 
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import me.millo.mcGit.McGit;
+import me.millo.mcGit.files.FileBank;
 import me.millo.mcGit.git.GitCore;
 import me.millo.mcGit.git.GitState;
 import me.millo.mcGit.git.branch.Branch;
@@ -17,7 +22,10 @@ import org.bukkit.util.Transformation;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -27,10 +35,13 @@ public class WorldDiff {
     private ArrayList<Entity> diffEntities;
     private final GitCore core;
 
+    private boolean changesSinceLastSave = false;
+
     public WorldDiff(GitCore core) {
         this.core = core;
 
         blockModifications = new HashMap<>();
+        load();
     }
 
     public void setBlock(Location location, Block old, Block block) {
@@ -41,6 +52,7 @@ public class WorldDiff {
         }
 
         blockModifications.put(location, new BlockModification(old, block));
+        changesSinceLastSave = true;
     }
 
     public void commit(String name, String author) throws IOException {
@@ -50,17 +62,8 @@ public class WorldDiff {
         }
 
         Branch branch = core.getBranchHandler().getBranch();
+        CommitChanges changes = asCommitChanges();
 
-        Location[] locations = new Location[blockModifications.size()];
-        BlockModification[] modifications = new BlockModification[blockModifications.size()];
-        int i = 0;
-        for (final Location location : blockModifications.keySet()) {
-            BlockModification change = blockModifications.get(location);
-            locations[i] = location;
-            modifications[i++] = change;
-        }
-
-        CommitChanges changes = new CommitChanges(locations, modifications);
         Commit commit = new Commit(
                 name,
                 new CommitHash[]{branch.getHeadHash()},
@@ -73,6 +76,69 @@ public class WorldDiff {
         core.getBranchHandler().save();
 
         blockModifications.clear();
+        changesSinceLastSave = true;
+    }
+
+    private CommitChanges asCommitChanges() {
+        Location[] locations = new Location[blockModifications.size()];
+        BlockModification[] modifications = new BlockModification[blockModifications.size()];
+        int i = 0;
+        for (final Location location : blockModifications.keySet()) {
+            BlockModification change = blockModifications.get(location);
+            locations[i] = location;
+            modifications[i++] = change;
+        }
+
+        return new CommitChanges(locations, modifications);
+    }
+
+    public void save() {
+        if (!changesSinceLastSave) {
+            Broadcast.message("No diff changes to save.");
+            return;
+        }
+        changesSinceLastSave = false;
+
+        JsonObject root = new JsonObject();
+
+        CommitChanges changes = asCommitChanges();
+        McGit.SERIALIZER.serialize(root, changes);
+
+        try {
+            File file = FileBank.getDiffFile();
+
+            Files.writeString(
+                    file.toPath(),
+                    new GsonBuilder()
+                            .setPrettyPrinting()
+                            .create()
+                            .toJson(root)
+            );
+            Broadcast.message("Saved diff");
+        } catch (IOException e) {
+            Broadcast.message("Failed to save diff", e);
+        }
+    }
+
+    public void load() {
+        File file = FileBank.getDiffFile();
+
+        if (!file.exists()) return;
+
+        try (FileReader reader = new FileReader(file)) {
+            JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+            CommitChanges changes = McGit.SERIALIZER.deserialize(json);
+
+            blockModifications.clear();
+            for (int i = 0; i < changes.locations().length; i++) {
+                Location location = changes.locations()[i];
+                BlockModification mod = changes.modifications()[i];
+
+                blockModifications.put(location, mod);
+            }
+        } catch (IOException e) {
+            Broadcast.message("Failed to load diff", e);
+        }
     }
 
     public void toggleDisplay() {

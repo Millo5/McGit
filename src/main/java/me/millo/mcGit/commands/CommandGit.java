@@ -123,7 +123,7 @@ public class CommandGit {
         try {
             Commit commit = Commit.fromHash(hash);
             String depthStr = "|  ".repeat(depth);
-            Broadcast.message(depthStr + commit, depthStr + hash);
+            Broadcast.message(depthStr + commit.getMessage(), depthStr + hash);
 
             if (commit.getParents().length > 1) depth++;
             for (CommitHash parent : commit.getParents()) {

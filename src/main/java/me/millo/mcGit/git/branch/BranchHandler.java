@@ -81,6 +81,7 @@ public class BranchHandler {
                             .toJson(root)
             );
         } catch (IOException e) {
+            Broadcast.message("Failed to save branches", e);
             throw new RuntimeException("Failed to save branches", e);
         }
     }
