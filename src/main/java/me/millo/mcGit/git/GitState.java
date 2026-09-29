@@ -1,7 +1,7 @@
 package me.millo.mcGit.git;
 
 public enum GitState {
-    READY,
+    IDLE,
     DISPLAY,
     MERGE_CONFLICT,
     BUSY

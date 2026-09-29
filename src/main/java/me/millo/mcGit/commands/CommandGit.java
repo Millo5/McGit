@@ -6,6 +6,8 @@ import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import me.millo.mcGit.McGit;
+import me.millo.mcGit.exceptions.CommitNotFoundException;
+import me.millo.mcGit.exceptions.McGitException;
 import me.millo.mcGit.git.GitCore;
 import me.millo.mcGit.git.branch.Branch;
 import me.millo.mcGit.git.branch.BranchHandler;
@@ -14,8 +16,7 @@ import me.millo.mcGit.git.commit.CommitHash;
 import me.millo.mcGit.utility.Broadcast;
 
 import java.io.IOException;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.ArrayList;
 
 public class CommandGit {
 
@@ -44,29 +45,22 @@ public class CommandGit {
                         .then(Commands.literal("log")
                                 .executes(CommandGit::log))
                         .then(Commands.literal("apply")
-                                .then(Commands.argument("hash", StringArgumentType.word())
+                                .then(Commands.argument("hash", new CommitArgumentType())
                                         .executes(ctx -> {
-                                            String hash = StringArgumentType.getString(ctx, "hash");
-                                            try {
-                                                Commit commit = Commit.fromHash(new CommitHash(UUID.fromString(hash)));
-                                                commit.apply();
-                                            } catch (IOException e) {
-                                                Broadcast.message("Commit " + hash + " not found.");
-                                            }
+                                            Commit commit = CommitArgumentType.getCommit(ctx, "hash");
+                                            commit.apply();
                                             return 1;
                                         })))
                         .then(Commands.literal("revert")
-                                .then(Commands.argument("hash", StringArgumentType.word())
+                                .then(Commands.argument("hash", new CommitArgumentType())
                                         .executes(ctx -> {
-                                            String hash = StringArgumentType.getString(ctx, "hash");
-                                            try {
-                                                Commit commit = Commit.fromHash(new CommitHash(UUID.fromString(hash)));
-                                                commit.revert();
-                                            } catch (IOException e) {
-                                                Broadcast.message("Commit " + hash + " not found.");
-                                            }
+                                            Commit commit = CommitArgumentType.getCommit(ctx, "hash");
+                                            commit.revert();
                                             return 1;
                                         })))
+                        .then(Commands.literal("rollback")
+                                .then(Commands.argument("commit", new CommitArgumentType(true))
+                                        .executes(CommandGit::rollback)))
                         .build()
         );
     }
@@ -77,7 +71,7 @@ public class CommandGit {
                         .then(Commands.argument("name", StringArgumentType.word())
                             .executes(CommandGit::branchCreate)))
                 .then(Commands.literal("checkout")
-                        .then(Commands.argument("name", StringArgumentType.word())
+                        .then(Commands.argument("branch", new BranchArgumentType())
                             .executes(CommandGit::branchCheckout)))
                 .then(Commands.literal("list")
                         .executes(ctx -> {
@@ -102,16 +96,9 @@ public class CommandGit {
     }
 
     private static int branchCheckout(CommandContext<CommandSourceStack> ctx) {
-        String name = StringArgumentType.getString(ctx, "name");
+        Branch branch = BranchArgumentType.getBranch(ctx, "branch");
         BranchHandler branches = McGit.getGitCore().getBranchHandler();
-
-        Optional<Branch> found = branches.getBranchByName(name);
-        if (found.isEmpty()) {
-            ctx.getSource().getSender().sendMessage("A branch with this name does not exist!");
-            return 1;
-        }
-
-        branches.setBranch(found.get());
+        branches.setBranch(branch);
         return 1;
     }
 
@@ -135,15 +122,44 @@ public class CommandGit {
     private static void commitLog(CommitHash hash, int depth) {
         try {
             Commit commit = Commit.fromHash(hash);
-            String depthStr = "  ".repeat(depth);
-            Broadcast.message(depthStr + commit.getMessage(), depthStr + hash);
+            String depthStr = "|  ".repeat(depth);
+            Broadcast.message(depthStr + commit, depthStr + hash);
 
             if (commit.getParents().length > 1) depth++;
             for (CommitHash parent : commit.getParents()) {
                 commitLog(parent, depth);
             }
-        } catch (IOException e) {
-            Broadcast.message(hash.toString(), "COULD NOT FIND COMMIT");
+        } catch (CommitNotFoundException e) {
+            e.broadcast();
         }
+    }
+
+    private static int rollback(CommandContext<CommandSourceStack> ctx) {
+        Commit commit = CommitArgumentType.getCommit(ctx, "commit");
+        Branch branch = McGit.getGitCore().getBranchHandler().getBranch();
+
+        Broadcast.message("Rolling " + branch.getName() + " back to " + commit);
+
+        ArrayList<CommitHash> commits = null;
+        try {
+            commits = branch.getTrail(commit.getHash());
+        } catch (McGitException e) {
+            e.broadcast();
+            return 1;
+        }
+
+        for (CommitHash commitHash : commits) {
+            try {
+                Commit c = Commit.fromHash(commitHash);
+                Broadcast.message(" | -" + c);
+                c.revert();
+            } catch (CommitNotFoundException e) {
+                e.broadcast();
+                return 1;
+            }
+        }
+
+        branch.setHead(commit.getHash());
+        return 1;
     }
 }

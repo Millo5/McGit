@@ -1,11 +1,13 @@
 package me.millo.mcGit.listeners;
 
-import me.millo.mcGit.McGit;
 import me.millo.mcGit.git.GitCore;
+import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 
 public class BlockChangeListener implements Listener {
 
@@ -16,7 +18,7 @@ public class BlockChangeListener implements Listener {
 
     @EventHandler
     public void blockPlace(BlockPlaceEvent event) {
-        if (core.isNotReady()) {
+        if (core.isIdle()) {
             event.setCancelled(true);
             return;
         }
@@ -29,7 +31,7 @@ public class BlockChangeListener implements Listener {
 
     @EventHandler
     public void blockBreak(BlockBreakEvent event) {
-        if (core.isNotReady()) {
+        if (core.isIdle()) {
             event.setCancelled(true);
             return;
         }
@@ -38,6 +40,36 @@ public class BlockChangeListener implements Listener {
                 event.getBlock().getLocation(),
                 event.getBlock(),
                 null);
+    }
+
+    @EventHandler
+    public void blockExplode(BlockExplodeEvent event) {
+        if (core.isIdle()) {
+            event.setCancelled(true);
+            return;
+        }
+
+        core.getCurrentDiff().setBlock(
+                event.getBlock().getLocation(),
+                event.getBlock(),
+                null
+        );
+    }
+
+    @EventHandler
+    public void entityExplode(EntityExplodeEvent event) {
+        if (core.isIdle()) {
+            event.setCancelled(true);
+            return;
+        }
+
+        for (Block block : event.blockList()) {
+            core.getCurrentDiff().setBlock(
+                    block.getLocation(),
+                    block,
+                    null
+            );
+        }
     }
 
 }

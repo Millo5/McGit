@@ -1,7 +1,6 @@
 package me.millo.mcGit.utility;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -19,8 +18,8 @@ public class Broadcast {
 
         for (Player player : Bukkit.getServer().getOnlinePlayers()) {
             player.sendMessage(
-                    Component.text("[GIT] ").color(TextColor.color(195, 50, 90))
-                            .append(Component.text(message.toString()).color(TextColor.color(80, 80, 80))));
+                    Component.text("[GIT] ").color(TextColors.PRIMARY)
+                            .append(Component.text(message.toString()).color(TextColors.DARK)));
         }
     }
 }

@@ -1,21 +1,27 @@
 package me.millo.mcGit.git.commit;
 
 import com.google.gson.*;
+import me.millo.mcGit.exceptions.CommitNotFoundException;
 import me.millo.mcGit.files.FileBank;
 import me.millo.mcGit.git.commit.serializer.ChangesSerializer;
 import me.millo.mcGit.git.commit.serializer.SimpleChangesSerializer;
 import me.millo.mcGit.utility.Broadcast;
 
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public class Commit {
 
     private static final ChangesSerializer SERIALIZER = new SimpleChangesSerializer();
+    private static final ArrayList<String> foundHashesCache = new ArrayList<>();
+    private static boolean cacheDirty = false;
 
     private final CommitHash hash;
     private final String message;
@@ -35,6 +41,8 @@ public class Commit {
         this.timestamp = timestamp;
         this.author = author;
         this.changes = changes;
+
+        dirtyCache();
     }
 
     public CommitHash getHash() {
@@ -72,14 +80,16 @@ public class Commit {
                     .create()
                     .toJson(root, writer);
         }
+
+        dirtyCache();
     }
 
-    public static Commit fromHash(CommitHash hash) throws IOException {
+    public static Commit fromHash(CommitHash hash) throws CommitNotFoundException {
         Path target = FileBank.getCommitFolder().resolve(hash.toString());
 
         if (!target.toFile().exists()) {
             Broadcast.message("Commit " + hash + " does not exist!");
-            throw new RuntimeException();
+            throw new CommitNotFoundException(hash);
         }
 
         try (FileReader reader = new FileReader(target.toFile())) {
@@ -102,18 +112,21 @@ public class Commit {
                     json.get("author").getAsString(),
                     changes
             );
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException();
         }
     }
 
     public void revert() {
         for (int i = 0; i < changes.locations().length; i++) {
-            changes.locations()[i].getBlock().setBlockData(changes.modifications()[i].getOldBlock());
+            changes.locations()[i].getBlock().setBlockData(changes.modifications()[i].getOldBlock(), false);
         }
     }
 
     public void apply() {
         for (int i = 0; i < changes.locations().length; i++) {
-            changes.locations()[i].getBlock().setBlockData(changes.modifications()[i].getNewBlock());
+            changes.locations()[i].getBlock().setBlockData(changes.modifications()[i].getNewBlock(), false);
         }
     }
 
@@ -125,4 +138,36 @@ public class Commit {
         return parents;
     }
 
+    public void dirtyCache() {
+        cacheDirty = true;
+    }
+
+    public boolean parentsContain(CommitHash hash) throws CommitNotFoundException {
+        for (CommitHash parent : parents) {
+            if (parent == hash) return true;
+            return Commit.fromHash(parent).parentsContain(hash);
+        }
+        return false;
+    }
+
+    public static ArrayList<String> getFoundHashes() {
+        if (!cacheDirty) return foundHashesCache;
+        cacheDirty = false;
+
+        foundHashesCache.clear();
+        try (Stream<Path> files = Files.list(FileBank.getCommitFolder())){
+            for (Path path : files.toList()) {
+                foundHashesCache.add(path.toFile().getName());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return foundHashesCache;
+    }
+
+    @Override
+    public String toString() {
+        return message + "[" + hash + "]";
+    }
 }
