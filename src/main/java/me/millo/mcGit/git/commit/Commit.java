@@ -1,11 +1,13 @@
 package me.millo.mcGit.git.commit;
 
 import com.google.gson.*;
+import me.millo.mcGit.exceptions.CommitNotFoundException;
 import me.millo.mcGit.files.FileBank;
 import me.millo.mcGit.git.commit.serializer.ChangesSerializer;
 import me.millo.mcGit.git.commit.serializer.SimpleChangesSerializer;
 import me.millo.mcGit.utility.Broadcast;
 
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Writer;
@@ -82,12 +84,12 @@ public class Commit {
         dirtyCache();
     }
 
-    public static Commit fromHash(CommitHash hash) throws IOException {
+    public static Commit fromHash(CommitHash hash) throws CommitNotFoundException {
         Path target = FileBank.getCommitFolder().resolve(hash.toString());
 
         if (!target.toFile().exists()) {
             Broadcast.message("Commit " + hash + " does not exist!");
-            throw new RuntimeException();
+            throw new CommitNotFoundException(hash);
         }
 
         try (FileReader reader = new FileReader(target.toFile())) {
@@ -110,6 +112,9 @@ public class Commit {
                     json.get("author").getAsString(),
                     changes
             );
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException();
         }
     }
 
@@ -137,7 +142,7 @@ public class Commit {
         cacheDirty = true;
     }
 
-    public boolean parentsContain(CommitHash hash) throws IOException {
+    public boolean parentsContain(CommitHash hash) throws CommitNotFoundException {
         for (CommitHash parent : parents) {
             if (parent == hash) return true;
             return Commit.fromHash(parent).parentsContain(hash);

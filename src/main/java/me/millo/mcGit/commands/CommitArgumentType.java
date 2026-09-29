@@ -11,6 +11,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import io.papermc.paper.command.brigadier.argument.CustomArgumentType;
 import me.millo.mcGit.McGit;
+import me.millo.mcGit.exceptions.CommitNotFoundException;
 import me.millo.mcGit.git.commit.Commit;
 import me.millo.mcGit.git.commit.CommitHash;
 import org.jetbrains.annotations.NotNull;
@@ -37,7 +38,7 @@ public class CommitArgumentType implements CustomArgumentType<Commit, String> {
         String hash = getNativeType().parse(reader);
         try {
             return Commit.fromHash(new CommitHash(UUID.fromString(hash)));
-        } catch (IOException e) {
+        } catch (CommitNotFoundException e) {
             throw new CommandSyntaxException(new SimpleCommandExceptionType(new LiteralMessage("Invalid Commit Hash")),
                     new LiteralMessage(hash));
         }

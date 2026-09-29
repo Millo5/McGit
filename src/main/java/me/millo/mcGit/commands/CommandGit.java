@@ -6,6 +6,8 @@ import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import me.millo.mcGit.McGit;
+import me.millo.mcGit.exceptions.CommitNotFoundException;
+import me.millo.mcGit.exceptions.McGitException;
 import me.millo.mcGit.git.GitCore;
 import me.millo.mcGit.git.branch.Branch;
 import me.millo.mcGit.git.branch.BranchHandler;
@@ -14,6 +16,7 @@ import me.millo.mcGit.git.commit.CommitHash;
 import me.millo.mcGit.utility.Broadcast;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class CommandGit {
 
@@ -126,8 +129,8 @@ public class CommandGit {
             for (CommitHash parent : commit.getParents()) {
                 commitLog(parent, depth);
             }
-        } catch (IOException e) {
-            Broadcast.message(hash.toString(), "COULD NOT FIND COMMIT");
+        } catch (CommitNotFoundException e) {
+            e.broadcast();
         }
     }
 
@@ -137,13 +140,22 @@ public class CommandGit {
 
         Broadcast.message("Rolling " + branch.getName() + " back to " + commit);
 
-        for (CommitHash commitHash : branch.getTrail(commit.getHash())) {
+        ArrayList<CommitHash> commits = null;
+        try {
+            commits = branch.getTrail(commit.getHash());
+        } catch (McGitException e) {
+            e.broadcast();
+            return 1;
+        }
+
+        for (CommitHash commitHash : commits) {
             try {
                 Commit c = Commit.fromHash(commitHash);
                 Broadcast.message(" | -" + c);
                 c.revert();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+            } catch (CommitNotFoundException e) {
+                e.broadcast();
+                return 1;
             }
         }
 
