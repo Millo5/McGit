@@ -3,11 +3,14 @@ package me.millo.mcGit;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.millo.mcGit.commands.CommandGit;
 import me.millo.mcGit.git.GitCore;
+import me.millo.mcGit.git.commit.serializer.ChangesSerializer;
+import me.millo.mcGit.git.commit.serializer.SimpleChangesSerializer;
 import me.millo.mcGit.listeners.BlockChangeListener;
+import me.millo.mcGit.utility.Broadcast;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class McGit extends JavaPlugin {
-
+    public static final ChangesSerializer SERIALIZER = new SimpleChangesSerializer();
     private static GitCore gitCore;
 
     @Override
@@ -22,11 +25,13 @@ public final class McGit extends JavaPlugin {
             CommandGit.register(event.registrar());
         });
 
+        getServer().getScheduler().scheduleSyncRepeatingTask(this, gitCore.getCurrentDiff()::save, 0, 20 * 60);
+
     }
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
+        gitCore.getCurrentDiff().save();
     }
 
     public static GitCore getGitCore() {
