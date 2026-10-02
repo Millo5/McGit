@@ -166,4 +166,8 @@ public class ByteArray {
             throw new RuntimeException(e);
         }
     }
+
+    public boolean hasRemaining() {
+        return readHead < head;
+    }
 }
