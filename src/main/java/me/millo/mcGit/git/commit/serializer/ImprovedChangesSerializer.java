@@ -43,6 +43,7 @@ public class ImprovedChangesSerializer extends ChangesSerializer {
         // Header
         array.add(paletteBitSize, Integer.SIZE);
         array.add(worldBitSize, Integer.SIZE);
+        array.add(worldChanges.size(), Integer.SIZE);
 
         // Changes grouped by world.
         for (WorldChanges world : worldChanges.values()) {
@@ -53,19 +54,15 @@ public class ImprovedChangesSerializer extends ChangesSerializer {
                 Location location = change.location();
                 BlockModification modification = change.modification();
 
-                int oldBlockIndex = blockPalette.get(
-                        modification.getOldBlock().getAsString()
-                );
-
-                int newBlockIndex = blockPalette.get(
-                        modification.getNewBlock().getAsString()
-                );
+                int oldBlockIndex = blockPalette.get(modification.getOldBlockString());
+                int newBlockIndex = blockPalette.get(modification.getNewBlockString());
 
                 array.add(oldBlockIndex, paletteBitSize);
                 array.add(newBlockIndex, paletteBitSize);
 
-                array.add(location.getBlockX(), LATERAL_BITS);
-                array.add(location.getBlockZ(), LATERAL_BITS);
+                int mask = (1 << LATERAL_BITS) - 1;
+                array.add(location.getBlockX() & mask, LATERAL_BITS);
+                array.add(location.getBlockZ() & mask, LATERAL_BITS);
                 array.add(location.getBlockY() + VERTICAL_OFFSET, VERTICAL_BITS);
             }
         }
@@ -104,23 +101,24 @@ public class ImprovedChangesSerializer extends ChangesSerializer {
 
         int paletteBitSize = array.readInt();
         int worldBitSize = array.readInt();
+        int worldCount = array.readInt();
 
         ArrayList<Location> locations = new ArrayList<>();
         ArrayList<BlockModification> modifications = new ArrayList<>();
 
-        while (array.hasRemaining()) {
+        for (int i = 0; i < worldCount; i++) {
             int worldIndex = (int) array.read(worldBitSize);
             int changeCount = array.readInt();
 
             String worldName = worldPalette.get(worldIndex);
 
-            for (int i = 0; i < changeCount; i++) {
+            for (int j = 0; j < changeCount; j++) {
                 int oldBlockIndex = (int) array.read(paletteBitSize);
                 int newBlockIndex = (int) array.read(paletteBitSize);
 
                 long x = array.readSigned(LATERAL_BITS);
                 long z = array.readSigned(LATERAL_BITS);
-                long y = array.readSigned(VERTICAL_BITS) - VERTICAL_OFFSET;
+                long y = array.read(VERTICAL_BITS) - VERTICAL_OFFSET;
 
                 locations.add(new Location(Bukkit.getWorld(worldName), x, y, z));
 
@@ -141,8 +139,8 @@ public class ImprovedChangesSerializer extends ChangesSerializer {
         LinkedHashMap<String, Integer> blockPalette = new LinkedHashMap<>();
 
         for (BlockModification modification : changes.modifications()) {
-            blockPalette.computeIfAbsent(modification.getOldBlock().getAsString(), s -> blockPalette.size());
-            blockPalette.computeIfAbsent(modification.getNewBlock().getAsString(), s -> blockPalette.size());
+            blockPalette.computeIfAbsent(modification.getOldBlockString(), s -> blockPalette.size());
+            blockPalette.computeIfAbsent(modification.getNewBlockString(), s -> blockPalette.size());
         }
         return blockPalette;
     }

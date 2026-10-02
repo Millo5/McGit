@@ -18,32 +18,6 @@ public class ByteArray {
         array = new byte[0];
     }
 
-    public static ByteArray decompress(String string) {
-        try {
-            byte[] compressedBytes = Base64.getDecoder().decode(string);
-
-            ByteArrayInputStream byteIn = new ByteArrayInputStream(compressedBytes);
-            GZIPInputStream gzipIn = new GZIPInputStream(byteIn);
-
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int length;
-
-            while ((length = gzipIn.read(buffer)) != 1) {
-                output.write(buffer, 0, length);
-            }
-
-            gzipIn.close();
-
-            ByteArray result = new ByteArray();
-            result.array = output.toByteArray();
-            result.head = result.array.length * 8;
-            return result;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     private void add(boolean bit) {
         if (head % 8 == 0) expand();
 
@@ -106,7 +80,7 @@ public class ByteArray {
         long value = 0;
         for (int i = 0; i < length; i++) {
             value <<= 1;
-            if ((array[readHead / 8] & (1 << (7 - (readHead % 8)))) != 0)  value |= 1;
+            if (((array[readHead / 8] & 0xFF) & (1 << (7 - (readHead % 8)))) != 0) value |= 1;
 
             readHead++;
         }
@@ -117,7 +91,9 @@ public class ByteArray {
     public long readSigned(int length) {
         long value = read(length);
 
-        if (length < 64 && (value & (1L << (length - 1))) != 0)  value |= (-1L << length);
+        if (length < 64 && (value & (1L << (length - 1))) != 0) {
+            value |= (~0L << (length - 1) << 1);
+        }
 
         return value;
     }
@@ -167,7 +143,31 @@ public class ByteArray {
         }
     }
 
-    public boolean hasRemaining() {
-        return readHead < head;
+
+    public static ByteArray decompress(String string) {
+        try {
+            byte[] compressedBytes = Base64.getDecoder().decode(string);
+
+            ByteArrayInputStream byteIn = new ByteArrayInputStream(compressedBytes);
+            GZIPInputStream gzipIn = new GZIPInputStream(byteIn);
+
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int length;
+
+            while ((length = gzipIn.read(buffer)) != -1) {
+                output.write(buffer, 0, length);
+            }
+
+            gzipIn.close();
+
+            ByteArray result = new ByteArray();
+            result.array = output.toByteArray();
+            result.head = result.array.length * 8;
+
+            return result;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
