@@ -4,13 +4,12 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.millo.mcGit.commands.CommandGit;
 import me.millo.mcGit.git.GitCore;
 import me.millo.mcGit.git.commit.serializer.ChangesSerializer;
-import me.millo.mcGit.git.commit.serializer.SimpleChangesSerializer;
+import me.millo.mcGit.git.commit.serializer.ImprovedChangesSerializer;
 import me.millo.mcGit.listeners.BlockChangeListener;
-import me.millo.mcGit.utility.Broadcast;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class McGit extends JavaPlugin {
-    public static final ChangesSerializer SERIALIZER = new SimpleChangesSerializer();
+    public static final ChangesSerializer SERIALIZER = new ImprovedChangesSerializer();
     private static GitCore gitCore;
 
     @Override
@@ -31,6 +30,8 @@ public final class McGit extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        System.out.println("McGit has been disabled.");
+
         gitCore.getCurrentDiff().save();
     }
 

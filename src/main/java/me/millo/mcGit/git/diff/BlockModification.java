@@ -25,6 +25,14 @@ public class BlockModification {
         return newBlock;
     }
 
+    public String getOldBlockString() {
+        return oldBlock == null ? "air" : oldBlock.getAsString(true);
+    }
+
+    public String getNewBlockString() {
+        return newBlock == null ? "air" : newBlock.getAsString(true);
+    }
+
     public void setNewBlock(Block newBlock) {
         this.newBlock = newBlock == null ? null : newBlock.getBlockData();
     }
