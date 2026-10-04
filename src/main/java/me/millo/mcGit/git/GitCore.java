@@ -3,6 +3,7 @@ package me.millo.mcGit.git;
 import me.millo.mcGit.git.branch.BranchHandler;
 import me.millo.mcGit.git.diff.BlockModification;
 import me.millo.mcGit.git.diff.WorldDiff;
+import me.millo.mcGit.utility.Broadcast;
 import me.millo.mcGit.utility.TextColors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
@@ -87,6 +88,19 @@ public class GitCore {
     }
 
     public boolean isIdle() {
-        return state != GitState.IDLE;
+        return state == GitState.IDLE;
+    }
+
+    /**
+     * Returns true when the state is idle.
+     * Otherwise, returns false and broadcasts an error message.
+     * @return
+     */
+    public boolean requireIdle() {
+        if (isIdle()) return true;
+
+        Broadcast.message("Git State is required to be idle. Current: " + state);
+
+        return false;
     }
 }

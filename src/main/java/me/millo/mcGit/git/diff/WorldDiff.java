@@ -46,13 +46,13 @@ public class WorldDiff {
 
     public void setBlock(Location location, Block old, Block block) {
         BlockModification mod = blockModifications.get(location);
+        changesSinceLastSave = true;
         if (mod != null) {
             mod.setNewBlock(block);
             return;
         }
 
         blockModifications.put(location, new BlockModification(old, block));
-        changesSinceLastSave = true;
     }
 
     public void commit(String name, String author) throws IOException {
@@ -163,7 +163,7 @@ public class WorldDiff {
             return;
         }
 
-        if (core.isIdle()) return;
+        if (!core.requireIdle()) return;
         core.setState(GitState.DISPLAY);
         Broadcast.message("Viewing diff...");
 

@@ -144,7 +144,7 @@ public class Commit {
 
     public boolean parentsContain(CommitHash hash) throws CommitNotFoundException {
         for (CommitHash parent : parents) {
-            if (parent == hash) return true;
+            if (parent.equals(hash)) return true;
             return Commit.fromHash(parent).parentsContain(hash);
         }
         return false;
