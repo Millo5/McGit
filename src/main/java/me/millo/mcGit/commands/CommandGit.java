@@ -47,6 +47,7 @@ public class CommandGit {
                         .then(Commands.literal("apply")
                                 .then(Commands.argument("hash", new CommitArgumentType())
                                         .executes(ctx -> {
+                                            if (!McGit.getGitCore().requireIdle()) return 1;
                                             Commit commit = CommitArgumentType.getCommit(ctx, "hash");
                                             commit.apply();
                                             return 1;
@@ -54,6 +55,7 @@ public class CommandGit {
                         .then(Commands.literal("revert")
                                 .then(Commands.argument("hash", new CommitArgumentType())
                                         .executes(ctx -> {
+                                            if (!McGit.getGitCore().requireIdle()) return 1;
                                             Commit commit = CommitArgumentType.getCommit(ctx, "hash");
                                             commit.revert();
                                             return 1;
@@ -83,6 +85,8 @@ public class CommandGit {
     }
 
     private static int branchCreate(CommandContext<CommandSourceStack> ctx) {
+        if (!McGit.getGitCore().requireIdle()) return 1;
+
         String name = StringArgumentType.getString(ctx, "name");
         BranchHandler branches = McGit.getGitCore().getBranchHandler();
 
@@ -96,6 +100,8 @@ public class CommandGit {
     }
 
     private static int branchCheckout(CommandContext<CommandSourceStack> ctx) {
+        if (!McGit.getGitCore().requireIdle()) return 1;
+
         Branch branch = BranchArgumentType.getBranch(ctx, "branch");
         BranchHandler branches = McGit.getGitCore().getBranchHandler();
         branches.setBranch(branch);
@@ -103,6 +109,8 @@ public class CommandGit {
     }
 
     private static int commit(CommandContext<CommandSourceStack> ctx) {
+        if (!McGit.getGitCore().requireIdle()) return 1;
+
         String message = StringArgumentType.getString(ctx, "message");
         GitCore core = McGit.getGitCore();
         try {
@@ -135,6 +143,8 @@ public class CommandGit {
     }
 
     private static int rollback(CommandContext<CommandSourceStack> ctx) {
+        if (!McGit.getGitCore().requireIdle()) return 1;
+
         Commit commit = CommitArgumentType.getCommit(ctx, "commit");
         Branch branch = McGit.getGitCore().getBranchHandler().getBranch();
 
