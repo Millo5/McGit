@@ -17,6 +17,7 @@ import me.millo.mcGit.utility.Broadcast;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public class CommandGit {
 
@@ -44,6 +45,12 @@ public class CommandGit {
                                     .executes(CommandGit::commit)))
                         .then(Commands.literal("log")
                                 .executes(CommandGit::log))
+                        .then(Commands.literal("merge")
+                                .then(Commands.argument("branch", new BranchArgumentType())
+                                        .executes(CommandGit::merge)))
+//                        .then(Commands.literal("rebase")
+//                                .then(Commands.argument("branch", new BranchArgumentType())
+//                                        .executes(CommandGit::rebase)))
                         .then(Commands.literal("apply")
                                 .then(Commands.argument("hash", new CommitArgumentType())
                                         .executes(ctx -> {
@@ -101,11 +108,66 @@ public class CommandGit {
 
     private static int branchCheckout(CommandContext<CommandSourceStack> ctx) {
         if (!McGit.getGitCore().requireIdle()) return 1;
+        if (!requireCleanDiff()) return 1;
 
         Branch branch = BranchArgumentType.getBranch(ctx, "branch");
-        BranchHandler branches = McGit.getGitCore().getBranchHandler();
-        branches.setBranch(branch);
+        GitCore core = McGit.getGitCore();
+        BranchHandler branches = core.getBranchHandler();
+        try {
+            core.getBranchOperations().checkout(branches, branch);
+        } catch (McGitException e) {
+            e.broadcast();
+        }
         return 1;
+    }
+
+    private static int merge(CommandContext<CommandSourceStack> ctx) {
+        if (!McGit.getGitCore().requireIdle()) return 1;
+        if (!requireCleanDiff()) return 1;
+
+        GitCore core = McGit.getGitCore();
+        Branch target = BranchArgumentType.getBranch(ctx, "branch");
+        try {
+            CommitHash mergeHash = core.getBranchOperations().merge(
+                    core.getBranchHandler(),
+                    target,
+                    ctx.getSource().getSender().getName()
+            );
+            Broadcast.message("Merge complete.", "Commit: " + mergeHash);
+        } catch (McGitException e) {
+            e.broadcast();
+        } catch (IOException e) {
+            Broadcast.message("Failed to save merge commit.", e);
+        }
+        return 1;
+    }
+
+    private static int rebase(CommandContext<CommandSourceStack> ctx) {
+        if (!McGit.getGitCore().requireIdle()) return 1;
+        if (!requireCleanDiff()) return 1;
+
+        GitCore core = McGit.getGitCore();
+        Branch target = BranchArgumentType.getBranch(ctx, "branch");
+        try {
+            CommitHash rebaseHash = core.getBranchOperations().rebase(
+                    core.getBranchHandler(),
+                    target,
+                    ctx.getSource().getSender().getName()
+            );
+            Broadcast.message("Rebase complete.", "Commit: " + rebaseHash);
+        } catch (McGitException e) {
+            e.broadcast();
+        } catch (IOException e) {
+            Broadcast.message("Failed to save rebase commit.", e);
+        }
+        return 1;
+    }
+
+    private static boolean requireCleanDiff() {
+        if (McGit.getGitCore().getCurrentDiff().getBlockModifications().isEmpty()) return true;
+
+        Broadcast.message("Commit or discard active changes before changing branch history.");
+        return false;
     }
 
     private static int commit(CommandContext<CommandSourceStack> ctx) {
@@ -123,23 +185,59 @@ public class CommandGit {
 
     private static int log(CommandContext<CommandSourceStack> ctx) {
         CommitHash head = McGit.getGitCore().getBranchHandler().getBranch().getHeadHash();
-        commitLog(head, 0);
+        Broadcast.message("Commit log for " + McGit.getGitCore().getBranchHandler().getBranch().getName());
+        commitLog(head, "");
         return 1;
     }
 
-    private static void commitLog(CommitHash hash, int depth) {
+    private static void commitLog(CommitHash hash, String prefix) {
+        ArrayList<Commit> history = new ArrayList<>();
         try {
-            Commit commit = Commit.fromHash(hash);
-            String depthStr = "|  ".repeat(depth);
-            Broadcast.message(depthStr + commit.getMessage(), depthStr + hash);
+            Commit commit;
+            do {
+                commit = Commit.fromHash(hash);
+                history.add(commit);
 
-            if (commit.getParents().length > 1) depth++;
-            for (CommitHash parent : commit.getParents()) {
-                commitLog(parent, depth);
-            }
+                CommitHash[] parents = commit.getParents();
+                if (parents.length > 1) {
+                    hash = parents[0];
+                } else break;
+            } while (commit.getParents().length > 0);
         } catch (CommitNotFoundException e) {
             e.broadcast();
         }
+
+        for (int i = 0; i < history.size(); i++) {
+            String branch = i == history.size() - 1 ? "└ " : "├ ";
+            String branch2 = i == history.size() - 1 ? "     " : "│   ";
+            Commit commit2 = history.get(i);
+            Broadcast.message(prefix + branch + commit2.getMessage());
+            Broadcast.message(prefix + branch2 + commit2.getHash());
+            if (commit2.getParents().length > 1) {
+                for (int j = 1; j < commit2.getParents().length; j++) {
+                    commitLog(commit2.getParents()[j], prefix + branch2);
+                }
+            }
+        }
+
+//            String branch = last ? "└" : "├";
+//            Broadcast.message(prefix + branch + commit.getMessage());
+//            Broadcast.message(prefix + " " + hash);
+//
+//
+//            if (parents.length > 1) {
+//                for (int i = 1; i < parents.length; i++) {
+//                    commitLog(parents[i], "│" + prefix, i == parents.length - 1, visited);
+//                }
+//            }
+//
+//            if (parents.length > 0) {
+//                commitLog(parents[0], prefix, false, visited);
+//            }
+//            for (int i = parents.length - 1; i >= 0; i--) {
+//                commitLog(parents[i], prefix, i == parents.length - 1, visited);
+//            }
+
     }
 
     private static int rollback(CommandContext<CommandSourceStack> ctx) {

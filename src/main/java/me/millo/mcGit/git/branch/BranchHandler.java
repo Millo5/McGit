@@ -49,9 +49,8 @@ public class BranchHandler {
     public void split(String name) {
         Branch newBranch = new Branch(name, branch.getHeadHash());
         foundBranches.add(newBranch);
-        save();
-
         setBranch(newBranch);
+        save();
     }
 
     public void save() {
