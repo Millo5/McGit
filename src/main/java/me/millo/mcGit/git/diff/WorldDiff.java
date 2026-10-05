@@ -12,9 +12,11 @@ import me.millo.mcGit.git.commit.Commit;
 import me.millo.mcGit.git.commit.CommitChanges;
 import me.millo.mcGit.git.commit.CommitHash;
 import me.millo.mcGit.utility.Broadcast;
+import me.millo.mcGit.utility.WorldUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
+import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -44,7 +46,7 @@ public class WorldDiff {
         load();
     }
 
-    public void setBlock(Location location, Block old, Block block) {
+    public void setBlock(Location location, BlockData old, BlockData block) {
         BlockModification mod = blockModifications.get(location);
         changesSinceLastSave = true;
         if (mod != null) {
@@ -157,7 +159,8 @@ public class WorldDiff {
                     world.getBlockAt(location).setType(Material.AIR, false);
                     continue;
                 }
-                world.getBlockAt(location).setBlockData(change.getNewBlock(), false);
+
+                WorldUtil.setBlockDirectly(location, change.getNewBlock());
             }
 
             return;
@@ -171,8 +174,8 @@ public class WorldDiff {
         for (final Location location : currentDiff.getBlockModifications().keySet()) {
             BlockModification change = currentDiff.getBlockModifications().get(location);
 
-            var world = location.getWorld();
-            world.getBlockAt(location).setType(Material.AIR);
+            World world = location.getWorld();
+            WorldUtil.setBlockDirectly(location, Material.AIR.createBlockData());
 
             if (change.getOldBlock() != null) {
                 Entity entity = world.spawnEntity(location.clone(), EntityType.BLOCK_DISPLAY);

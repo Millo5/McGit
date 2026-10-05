@@ -2,10 +2,12 @@ package me.millo.mcGit.listeners;
 
 import me.millo.mcGit.git.GitCore;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 
@@ -25,8 +27,8 @@ public class BlockChangeListener implements Listener {
 
         core.getCurrentDiff().setBlock(
                 event.getBlock().getLocation(),
-                null,
-                event.getBlock());
+                event.getBlockReplacedState().getBlockData(),
+                event.getBlockPlaced().getBlockData());
     }
 
     @EventHandler
@@ -38,7 +40,7 @@ public class BlockChangeListener implements Listener {
 
         core.getCurrentDiff().setBlock(
                 event.getBlock().getLocation(),
-                event.getBlock(),
+                event.getBlock().getBlockData(),
                 null);
     }
 
@@ -50,8 +52,8 @@ public class BlockChangeListener implements Listener {
         }
 
         core.getCurrentDiff().setBlock(
-                event.getBlock().getLocation(),
-                event.getBlock(),
+                event.getExplodedBlockState().getLocation(),
+                event.getExplodedBlockState().getBlockData(),
                 null
         );
     }
@@ -66,10 +68,27 @@ public class BlockChangeListener implements Listener {
         for (Block block : event.blockList()) {
             core.getCurrentDiff().setBlock(
                     block.getLocation(),
-                    block,
+                    block.getBlockData(),
                     null
             );
         }
+    }
+
+    @EventHandler
+    public void multiPlace(BlockMultiPlaceEvent event) {
+        if (!core.isIdle()) {
+            event.setCancelled(true);
+            return;
+        }
+
+        for (BlockState replacedBlockState : event.getReplacedBlockStates()) {
+            core.getCurrentDiff().setBlock(
+                    replacedBlockState.getLocation(),
+                    replacedBlockState.getBlockData(),
+                    replacedBlockState.getBlock().getBlockData()
+            );
+        }
+
     }
 
 }

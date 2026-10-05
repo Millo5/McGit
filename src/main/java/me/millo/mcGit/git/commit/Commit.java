@@ -5,6 +5,7 @@ import me.millo.mcGit.McGit;
 import me.millo.mcGit.exceptions.CommitNotFoundException;
 import me.millo.mcGit.files.FileBank;
 import me.millo.mcGit.utility.Broadcast;
+import me.millo.mcGit.utility.WorldUtil;
 import org.bukkit.Material;
 
 import java.io.FileReader;
@@ -122,7 +123,8 @@ public class Commit {
                 changes.locations()[i].getBlock().setType(Material.AIR, false);
                 continue;
             }
-            changes.locations()[i].getBlock().setBlockData(changes.modifications()[i].getOldBlock(), false);
+
+            WorldUtil.setBlockDirectly(changes.locations()[i], changes.modifications()[i].getOldBlock());
         }
     }
 
@@ -132,7 +134,8 @@ public class Commit {
                 changes.locations()[i].getBlock().setType(Material.AIR, false);
                 continue;
             }
-            changes.locations()[i].getBlock().setBlockData(changes.modifications()[i].getNewBlock(), false);
+
+            WorldUtil.setBlockDirectly(changes.locations()[i], changes.modifications()[i].getNewBlock());
         }
     }
 

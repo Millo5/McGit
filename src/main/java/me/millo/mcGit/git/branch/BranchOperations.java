@@ -7,6 +7,7 @@ import me.millo.mcGit.git.commit.CommitChanges;
 import me.millo.mcGit.git.commit.CommitHash;
 import me.millo.mcGit.git.diff.BlockModification;
 import me.millo.mcGit.utility.Broadcast;
+import me.millo.mcGit.utility.WorldUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -187,11 +188,11 @@ public class BranchOperations {
                     : change.modification().getOldBlock();
 
             if (block == null) {
-                change.location().getBlock().setType(Material.AIR, false);
+                WorldUtil.setBlockDirectly(change.location(), Material.AIR.createBlockData());
                 continue;
             }
 
-            change.location().getBlock().setBlockData(block, false);
+            WorldUtil.setBlockDirectly(change.location(), block);
         }
     }
 

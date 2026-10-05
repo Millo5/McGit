@@ -1,6 +1,8 @@
 plugins {
     id 'java'
     id("xyz.jpenilla.run-paper") version "3.1.0"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.22"
+//    id("io.papermc.paperweight.userdev") version "1.7.2"
 }
 
 group = 'me.millo'
@@ -15,7 +17,9 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+//    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+//    paperweightDevBundle("io.papermc.paper:dev-bundle:1.21.1-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.21.11-rc1-R0.1-SNAPSHOT")
 }
 
 tasks {

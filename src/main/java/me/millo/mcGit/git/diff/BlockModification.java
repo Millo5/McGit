@@ -33,7 +33,7 @@ public class BlockModification {
         return newBlock == null ? "air" : newBlock.getAsString(true);
     }
 
-    public void setNewBlock(Block newBlock) {
-        this.newBlock = newBlock == null ? null : newBlock.getBlockData();
+    public void setNewBlock(BlockData newBlock) {
+        this.newBlock = newBlock;
     }
 }
