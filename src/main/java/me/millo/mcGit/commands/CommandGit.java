@@ -50,9 +50,9 @@ public class CommandGit {
                         .then(Commands.literal("merge")
                                 .then(Commands.argument("branch", new BranchArgumentType())
                                         .executes(CommandGit::merge)))
-//                        .then(Commands.literal("rebase")
-//                                .then(Commands.argument("branch", new BranchArgumentType())
-//                                        .executes(CommandGit::rebase)))
+                        .then(Commands.literal("rebase")
+                                .then(Commands.argument("branch", new BranchArgumentType())
+                                        .executes(CommandGit::rebase)))
                         .then(Commands.literal("apply")
                                 .then(Commands.argument("hash", new CommitArgumentType())
                                         .executes(ctx -> {
@@ -224,25 +224,6 @@ public class CommandGit {
                 }
             }
         }
-
-//            String branch = last ? "└" : "├";
-//            Broadcast.message(prefix + branch + commit.getMessage());
-//            Broadcast.message(prefix + " " + hash);
-//
-//
-//            if (parents.length > 1) {
-//                for (int i = 1; i < parents.length; i++) {
-//                    commitLog(parents[i], "│" + prefix, i == parents.length - 1, visited);
-//                }
-//            }
-//
-//            if (parents.length > 0) {
-//                commitLog(parents[0], prefix, false, visited);
-//            }
-//            for (int i = parents.length - 1; i >= 0; i--) {
-//                commitLog(parents[i], prefix, i == parents.length - 1, visited);
-//            }
-
     }
 
     private static int rollback(CommandContext<CommandSourceStack> ctx) {
