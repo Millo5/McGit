@@ -18,6 +18,8 @@ import me.millo.mcGit.utility.Broadcast;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class CommandGit {
 
@@ -186,20 +188,21 @@ public class CommandGit {
     private static int log(CommandContext<CommandSourceStack> ctx) {
         CommitHash head = McGit.getGitCore().getBranchHandler().getBranch().getHeadHash();
         Broadcast.message("Commit log for " + McGit.getGitCore().getBranchHandler().getBranch().getName());
-        commitLog(head, "");
+        commitLog(head, "", new HashSet<>());
         return 1;
     }
 
-    private static void commitLog(CommitHash hash, String prefix) {
+    private static void commitLog(CommitHash hash, String prefix, Set<CommitHash> parentTrail) {
         ArrayList<Commit> history = new ArrayList<>();
         try {
             Commit commit;
             do {
+                if (parentTrail.contains(hash)) break;
                 commit = Commit.fromHash(hash);
                 history.add(commit);
 
                 CommitHash[] parents = commit.getParents();
-                if (parents.length > 1) {
+                if (parents.length >= 1) {
                     hash = parents[0];
                 } else break;
             } while (commit.getParents().length > 0);
@@ -215,7 +218,9 @@ public class CommandGit {
             Broadcast.message(prefix + branch2 + commit2.getHash());
             if (commit2.getParents().length > 1) {
                 for (int j = 1; j < commit2.getParents().length; j++) {
-                    commitLog(commit2.getParents()[j], prefix + branch2);
+                    Set<CommitHash> trail = history.stream().map(Commit::getHash).collect(Collectors.toSet());
+                    trail.addAll(parentTrail);
+                    commitLog(commit2.getParents()[j], prefix + branch2, trail);
                 }
             }
         }
