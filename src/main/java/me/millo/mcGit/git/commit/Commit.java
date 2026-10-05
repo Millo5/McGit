@@ -4,11 +4,9 @@ import com.google.gson.*;
 import me.millo.mcGit.McGit;
 import me.millo.mcGit.exceptions.CommitNotFoundException;
 import me.millo.mcGit.files.FileBank;
-import me.millo.mcGit.git.commit.serializer.ChangesSerializer;
-import me.millo.mcGit.git.commit.serializer.SimpleChangesSerializer;
 import me.millo.mcGit.utility.Broadcast;
+import org.bukkit.Material;
 
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Writer;
@@ -120,12 +118,20 @@ public class Commit {
 
     public void revert() {
         for (int i = 0; i < changes.locations().length; i++) {
+            if (changes.modifications()[i].getOldBlock() == null) {
+                changes.locations()[i].getBlock().setType(Material.AIR, false);
+                continue;
+            }
             changes.locations()[i].getBlock().setBlockData(changes.modifications()[i].getOldBlock(), false);
         }
     }
 
     public void apply() {
         for (int i = 0; i < changes.locations().length; i++) {
+            if (changes.modifications()[i].getNewBlock() == null) {
+                changes.locations()[i].getBlock().setType(Material.AIR, false);
+                continue;
+            }
             changes.locations()[i].getBlock().setBlockData(changes.modifications()[i].getNewBlock(), false);
         }
     }
@@ -138,6 +144,10 @@ public class Commit {
         return parents;
     }
 
+    public CommitChanges getChanges() {
+        return changes;
+    }
+
     public void dirtyCache() {
         cacheDirty = true;
     }
@@ -145,7 +155,7 @@ public class Commit {
     public boolean parentsContain(CommitHash hash) throws CommitNotFoundException {
         for (CommitHash parent : parents) {
             if (parent.equals(hash)) return true;
-            return Commit.fromHash(parent).parentsContain(hash);
+            if (Commit.fromHash(parent).parentsContain(hash)) return true;
         }
         return false;
     }

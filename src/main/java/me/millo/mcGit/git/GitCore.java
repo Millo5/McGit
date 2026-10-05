@@ -1,6 +1,7 @@
 package me.millo.mcGit.git;
 
 import me.millo.mcGit.git.branch.BranchHandler;
+import me.millo.mcGit.git.branch.BranchOperations;
 import me.millo.mcGit.git.diff.BlockModification;
 import me.millo.mcGit.git.diff.WorldDiff;
 import me.millo.mcGit.utility.Broadcast;
@@ -20,6 +21,7 @@ public class GitCore {
 
     private final WorldDiff currentDiff;
     private final BranchHandler branchHandler;
+    private final BranchOperations branchOperations = new BranchOperations();
 
     private GitState state = GitState.IDLE;
 
@@ -85,6 +87,10 @@ public class GitCore {
 
     public BranchHandler getBranchHandler() {
         return branchHandler;
+    }
+
+    public BranchOperations getBranchOperations() {
+        return branchOperations;
     }
 
     public boolean isIdle() {
