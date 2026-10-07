@@ -9,6 +9,7 @@ import me.millo.mcGit.McGit;
 import me.millo.mcGit.exceptions.CommitNotFoundException;
 import me.millo.mcGit.exceptions.McGitException;
 import me.millo.mcGit.git.GitCore;
+import me.millo.mcGit.git.GitState;
 import me.millo.mcGit.git.branch.Branch;
 import me.millo.mcGit.git.branch.BranchHandler;
 import me.millo.mcGit.git.commit.Commit;
@@ -44,6 +45,13 @@ public class CommandGit {
                                     return 1;
                                 }))
                         .then(branchSubCommand())
+                        .then(Commands.literal("view")
+                                .executes(ctx -> {
+                                    CommandGit.resetView();
+                                    return 1;
+                                })
+                                .then(Commands.argument("commit", new CommitArgumentType())
+                                        .executes(CommandGit::view)))
                         .then(Commands.literal("commit")
                                 .then(Commands.argument("message", StringArgumentType.greedyString())
                                     .executes(CommandGit::commit)))
@@ -307,6 +315,55 @@ public class CommandGit {
         }
 
         branch.setHead(commit.getHash());
+        return 1;
+    }
+
+    private static void resetView() {
+        if (!McGit.getGitCore().getState().equals(GitState.VIEW)) return;
+
+        Broadcast.message("Returning to branch head.");
+        for (Commit viewingCommit : McGit.getGitCore().getState().getViewingCommits().reversed()) {
+            Broadcast.message(" | +" + viewingCommit);
+            viewingCommit.apply();
+        }
+        McGit.getGitCore().getState().setIdle();
+    }
+
+    private static int view(CommandContext<CommandSourceStack> ctx) {
+        if (McGit.getGitCore().getState().equals(GitState.VIEW)) {
+            resetView();
+            return 1;
+        }
+
+        if (McGit.getGitCore().getState().isBusyAndNotify()) return 1;
+
+        Commit commit = CommitArgumentType.getCommit(ctx, "commit");
+        Branch branch = McGit.getGitCore().getBranchHandler().getBranch();
+        Broadcast.message("Viewing " + commit);
+
+        ArrayList<Commit> commitList = new ArrayList<>();
+
+        ArrayList<CommitHash> commits;
+        try {
+            commits = branch.getTrail(commit.getHash());
+        } catch (McGitException e) {
+            e.broadcast();
+            return 1;
+        }
+
+        for (CommitHash commitHash : commits) {
+            try {
+                Commit c = Commit.fromHash(commitHash);
+                Broadcast.message(" | -" + c);
+                commitList.add(c);
+                c.revert();
+            } catch (CommitNotFoundException e) {
+                e.broadcast();
+                return 1;
+            }
+        }
+
+        McGit.getGitCore().getState().setView(commitList);
         return 1;
     }
 }

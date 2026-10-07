@@ -4,5 +4,5 @@ public enum GitState {
     IDLE,
     DISPLAY,
     MERGE_CONFLICT,
-    BUSY
+    VIEW
 }
