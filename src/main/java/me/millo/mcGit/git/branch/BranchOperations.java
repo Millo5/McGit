@@ -148,7 +148,7 @@ public class BranchOperations {
         return collapsed;
     }
 
-    private ArrayList<CommitHash> firstParentTrail(CommitHash base, CommitHash head) throws McGitException {
+    public ArrayList<CommitHash> firstParentTrail(CommitHash base, CommitHash head) throws McGitException {
         ArrayList<CommitHash> trail = new ArrayList<>();
         CommitHash current = head;
 
