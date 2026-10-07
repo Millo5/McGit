@@ -146,8 +146,8 @@ public class WorldDiff {
     public void toggleDisplay() {
         WorldDiff currentDiff = core.getCurrentDiff();
 
-        if (core.stateEquals(GitState.DISPLAY)) {
-            core.setState(GitState.IDLE);
+        if (core.getState().equals(GitState.DISPLAY)) {
+            core.getState().setIdle();
             Broadcast.message("Hiding diff.");
 
             diffEntities.forEach(Entity::remove);
@@ -166,8 +166,8 @@ public class WorldDiff {
             return;
         }
 
-        if (!core.requireIdle()) return;
-        core.setState(GitState.DISPLAY);
+        if (core.getState().isBusyAndNotify()) return;
+        core.getState().setDisplay();
         Broadcast.message("Viewing diff...");
 
         diffEntities = new ArrayList<>();

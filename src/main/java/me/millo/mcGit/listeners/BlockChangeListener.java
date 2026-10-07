@@ -20,7 +20,7 @@ public class BlockChangeListener implements Listener {
 
     @EventHandler
     public void blockPlace(BlockPlaceEvent event) {
-        if (!core.isIdle()) {
+        if (!core.getState().isIdle()) {
             event.setCancelled(true);
             return;
         }
@@ -33,7 +33,7 @@ public class BlockChangeListener implements Listener {
 
     @EventHandler
     public void blockBreak(BlockBreakEvent event) {
-        if (!core.isIdle()) {
+        if (!core.getState().isIdle()) {
             event.setCancelled(true);
             return;
         }
@@ -46,7 +46,7 @@ public class BlockChangeListener implements Listener {
 
     @EventHandler
     public void blockExplode(BlockExplodeEvent event) {
-        if (!core.isIdle()) {
+        if (!core.getState().isIdle()) {
             event.setCancelled(true);
             return;
         }
@@ -60,7 +60,7 @@ public class BlockChangeListener implements Listener {
 
     @EventHandler
     public void entityExplode(EntityExplodeEvent event) {
-        if (!core.isIdle()) {
+        if (!core.getState().isIdle()) {
             event.setCancelled(true);
             return;
         }
@@ -76,7 +76,7 @@ public class BlockChangeListener implements Listener {
 
     @EventHandler
     public void multiPlace(BlockMultiPlaceEvent event) {
-        if (!core.isIdle()) {
+        if (!core.getState().isIdle()) {
             event.setCancelled(true);
             return;
         }
