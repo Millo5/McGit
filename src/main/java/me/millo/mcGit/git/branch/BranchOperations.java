@@ -5,19 +5,18 @@ import me.millo.mcGit.exceptions.McGitException;
 import me.millo.mcGit.git.commit.Commit;
 import me.millo.mcGit.git.commit.CommitChanges;
 import me.millo.mcGit.git.commit.CommitHash;
+import me.millo.mcGit.git.diff.BlockChange;
 import me.millo.mcGit.git.diff.BlockModification;
-import me.millo.mcGit.utility.Broadcast;
+import me.millo.mcGit.git.merge.BlockConflict;
+import me.millo.mcGit.git.merge.Merge;
+import me.millo.mcGit.git.merge.MergeBuilder;
 import me.millo.mcGit.utility.WorldUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 public class BranchOperations {
 
@@ -35,54 +34,39 @@ public class BranchOperations {
         branches.save();
     }
 
-    public CommitHash merge(BranchHandler branches, Branch target, String author) throws McGitException, IOException {
+    public Merge merge(BranchHandler branches, Branch target, String author) throws McGitException {
         Branch current = branches.getBranch();
         if (current.getName().equals(target.getName())) {
             throw new McGitException("Cannot merge a branch into itself.");
         }
 
+        MergeBuilder builder = new MergeBuilder(target, author);
+
         CommitHash base = findMutualParent(current, target);
-        LinkedHashMap<String, Change> currentChanges = collapseChanges(base, current.getHeadHash());
-        LinkedHashMap<String, Change> targetChanges = collapseChanges(base, target.getHeadHash());
+        LinkedHashMap<String, BlockChange> currentChanges = collapseChanges(base, current.getHeadHash());
+        LinkedHashMap<String, BlockChange> targetChanges = collapseChanges(base, target.getHeadHash());
 
-        ArrayList<String> conflicts = new ArrayList<>();
-        LinkedHashMap<String, Change> mergeChanges = new LinkedHashMap<>();
-
-        for (Map.Entry<String, Change> entry : targetChanges.entrySet()) {
-            Change targetChange = entry.getValue();
-            Change currentChange = currentChanges.get(entry.getKey());
+        for (Map.Entry<String, BlockChange> entry : targetChanges.entrySet()) {
+            BlockChange targetChange = entry.getValue();
+            BlockChange currentChange = currentChanges.get(entry.getKey());
 
             if (currentChange == null) {
-                mergeChanges.put(entry.getKey(), targetChange);
+                builder.put(entry.getKey(), targetChange);
                 continue;
             }
 
-            if (blockString(currentChange.modification().getNewBlock()).equals(blockString(targetChange.modification().getNewBlock()))) {
+            BlockData targetBlockData = targetChange.modification().getNewBlock();
+            BlockData currentBlockData = currentChange.modification().getNewBlock();
+
+            if (WorldUtil.blockString(currentBlockData)
+                    .equals(WorldUtil.blockString(targetBlockData))) {
                 continue;
             }
 
-            conflicts.add(entry.getKey());
+            builder.conflict(entry.getKey(), new BlockConflict(targetChange.location(), currentBlockData, targetBlockData));
         }
 
-        if (!conflicts.isEmpty()) {
-            Broadcast.message("Merge conflict while merging " + target.getName() + " into " + current.getName(),
-                    "Conflicting blocks: " + conflicts.size(),
-                    "First conflict: " + conflicts.getFirst());
-            throw new McGitException("Merge stopped due to conflicts.");
-        }
-
-        CommitChanges changes = toCommitChanges(mergeChanges);
-        Commit commit = new Commit(
-                "Merge branch '" + target.getName() + "' into " + current.getName(),
-                new CommitHash[]{current.getHeadHash(), target.getHeadHash()},
-                author,
-                changes
-        );
-        commit.save();
-        applyChanges(mergeChanges, true);
-        current.setHead(commit.getHash());
-        branches.save();
-        return commit.getHash();
+        return builder.build();
     }
 
     public CommitHash rebase(BranchHandler branches, Branch target, String author) throws McGitException, IOException {
@@ -92,7 +76,7 @@ public class BranchOperations {
         }
 
         CommitHash base = findMutualParent(current, target);
-        LinkedHashMap<String, Change> targetChanges = collapseChanges(base, target.getHeadHash());
+        LinkedHashMap<String, BlockChange> targetChanges = collapseChanges(base, target.getHeadHash());
 
         Commit commit = new Commit(
                 "Rebase " + current.getName() + " onto " + target.getName(),
@@ -107,7 +91,7 @@ public class BranchOperations {
         return commit.getHash();
     }
 
-    private CommitHash findMutualParent(Branch current, Branch target) throws McGitException {
+    public CommitHash findMutualParent(Branch current, Branch target) throws McGitException {
         HashSet<CommitHash> currentAncestors = collectFirstParentAncestors(current.getHeadHash());
         CommitHash hash = target.getHeadHash();
 
@@ -135,9 +119,9 @@ public class BranchOperations {
         }
     }
 
-    private LinkedHashMap<String, Change> collapseChanges(CommitHash base, CommitHash head) throws McGitException {
+    private LinkedHashMap<String, BlockChange> collapseChanges(CommitHash base, CommitHash head) throws McGitException {
         ArrayList<CommitHash> trail = firstParentTrail(base, head);
-        LinkedHashMap<String, Change> collapsed = new LinkedHashMap<>();
+        LinkedHashMap<String, BlockChange> collapsed = new LinkedHashMap<>();
 
         for (CommitHash hash : trail) {
             Commit commit = fromHash(hash);
@@ -148,13 +132,13 @@ public class BranchOperations {
                 BlockModification modification = changes.modifications()[i];
                 String key = locationKey(location);
 
-                Change existing = collapsed.get(key);
+                BlockChange existing = collapsed.get(key);
                 if (existing == null) {
-                    collapsed.put(key, new Change(location, modification));
+                    collapsed.put(key, new BlockChange(location, modification));
                     continue;
                 }
 
-                collapsed.put(key, new Change(
+                collapsed.put(key, new BlockChange(
                         location,
                         new BlockModification(existing.modification().getOldBlock(), modification.getNewBlock())
                 ));
@@ -181,8 +165,8 @@ public class BranchOperations {
         return trail;
     }
 
-    private void applyChanges(LinkedHashMap<String, Change> changes, boolean applyNewBlock) {
-        for (Change change : changes.values()) {
+    private void applyChanges(LinkedHashMap<String, BlockChange> changes, boolean applyNewBlock) {
+        for (BlockChange change : changes.values()) {
             BlockData block = applyNewBlock
                     ? change.modification().getNewBlock()
                     : change.modification().getOldBlock();
@@ -196,12 +180,12 @@ public class BranchOperations {
         }
     }
 
-    private CommitChanges toCommitChanges(LinkedHashMap<String, Change> changes) {
+    private CommitChanges toCommitChanges(LinkedHashMap<String, BlockChange> changes) {
         Location[] locations = new Location[changes.size()];
         BlockModification[] modifications = new BlockModification[changes.size()];
 
         int i = 0;
-        for (Change change : changes.values()) {
+        for (BlockChange change : changes.values()) {
             locations[i] = change.location();
             modifications[i] = change.modification();
             i++;
@@ -223,9 +207,4 @@ public class BranchOperations {
         return worldName + ":" + location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ();
     }
 
-    private String blockString(BlockData block) {
-        return block == null ? "air" : block.getAsString(true);
-    }
-
-    private record Change(Location location, BlockModification modification) {}
 }

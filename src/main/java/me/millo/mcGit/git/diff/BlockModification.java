@@ -1,5 +1,6 @@
 package me.millo.mcGit.git.diff;
 
+import me.millo.mcGit.utility.WorldUtil;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 
@@ -26,11 +27,11 @@ public class BlockModification {
     }
 
     public String getOldBlockString() {
-        return oldBlock == null ? "air" : oldBlock.getAsString(true);
+        return WorldUtil.blockString(oldBlock);
     }
 
     public String getNewBlockString() {
-        return newBlock == null ? "air" : newBlock.getAsString(true);
+        return WorldUtil.blockString(newBlock);
     }
 
     public void setNewBlock(BlockData newBlock) {
