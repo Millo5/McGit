@@ -11,8 +11,9 @@ import me.millo.mcGit.git.branch.Branch;
 import me.millo.mcGit.git.commit.Commit;
 import me.millo.mcGit.git.commit.CommitChanges;
 import me.millo.mcGit.git.commit.CommitHash;
-import me.millo.mcGit.utility.Broadcast;
 import me.millo.mcGit.utility.WorldUtil;
+import me.millo.mcGit.utility.messenger.Messages;
+import me.millo.mcGit.utility.messenger.Messenger;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -58,8 +59,12 @@ public class WorldDiff {
     }
 
     public void commit(String name, String author) throws IOException {
+        commit(name, author, Messenger.createAll());
+    }
+
+    public void commit(String name, String author, Messenger messenger) throws IOException {
         if (core.getCurrentDiff().getBlockModifications().isEmpty()) {
-            Broadcast.message("There are no changes to commit.");
+            messenger.send(Messages.NO_CHANGES_TO_COMMIT);
             return;
         }
 
@@ -96,7 +101,7 @@ public class WorldDiff {
 
     public void save() {
         if (!changesSinceLastSave) {
-            Broadcast.message("No diff changes to save.");
+            Messenger.createOps().send(Messages.DIFF_NO_CHANGES_TO_SAVE);
             return;
         }
         changesSinceLastSave = false;
@@ -116,9 +121,9 @@ public class WorldDiff {
                             .create()
                             .toJson(root)
             );
-            Broadcast.message("Saved diff");
+            Messenger.createOps().send(Messages.DIFF_SAVED);
         } catch (IOException e) {
-            Broadcast.message("Failed to save diff", e);
+            Messenger.createOps().send(Messages.DIFF_SAVED_FAILED, e);
         }
     }
 
@@ -139,16 +144,20 @@ public class WorldDiff {
                 blockModifications.put(location, mod);
             }
         } catch (IOException e) {
-            Broadcast.message("Failed to load diff", e);
+            Messenger.createOps().send(Messages.DIFF_LOAD_FAILED, e);
         }
     }
 
     public void toggleDisplay() {
+        toggleDisplay(Messenger.createAll());
+    }
+
+    public void toggleDisplay(Messenger messenger) {
         WorldDiff currentDiff = core.getCurrentDiff();
 
         if (core.getState().equals(GitState.DISPLAY)) {
             core.getState().setIdle();
-            Broadcast.message("Hiding diff.");
+            messenger.send(Messages.DIFF_HIDDEN);
 
             diffEntities.forEach(Entity::remove);
 
@@ -166,9 +175,9 @@ public class WorldDiff {
             return;
         }
 
-        if (core.getState().isBusyAndNotify()) return;
+        if (core.getState().isBusyAndNotify(messenger)) return;
         core.getState().setDisplay();
-        Broadcast.message("Viewing diff...");
+        messenger.send(Messages.DIFF_VIEWING);
 
         diffEntities = new ArrayList<>();
         for (final Location location : currentDiff.getBlockModifications().keySet()) {

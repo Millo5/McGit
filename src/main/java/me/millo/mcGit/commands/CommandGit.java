@@ -15,7 +15,8 @@ import me.millo.mcGit.git.branch.BranchHandler;
 import me.millo.mcGit.git.commit.Commit;
 import me.millo.mcGit.git.commit.CommitHash;
 import me.millo.mcGit.git.merge.Merge;
-import me.millo.mcGit.utility.Broadcast;
+import me.millo.mcGit.utility.messenger.Messages;
+import me.millo.mcGit.utility.messenger.Messenger;
 import org.bukkit.entity.Player;
 
 import java.io.IOException;
@@ -31,12 +32,12 @@ public class CommandGit {
         dispatcher.register(
                 Commands.literal("git")
                         .executes(ctx -> {
-                            ctx.getSource().getSender().sendMessage("Basic git command");
+                            Messenger.create(ctx).send(Messages.BASIC_COMMAND);
                             return 1;
                         })
                         .then(Commands.literal("diff")
                                 .executes(ctx -> {
-                                    McGit.getGitCore().getCurrentDiff().toggleDisplay();
+                                    McGit.getGitCore().getCurrentDiff().toggleDisplay(Messenger.create(ctx));
                                     return 1;
                                 }))
                         .then(Commands.literal("status")
@@ -47,7 +48,7 @@ public class CommandGit {
                         .then(branchSubCommand())
                         .then(Commands.literal("view")
                                 .executes(ctx -> {
-                                    CommandGit.resetView();
+                                    CommandGit.resetView(Messenger.create(ctx));
                                     return 1;
                                 })
                                 .then(Commands.argument("commit", new CommitArgumentType())
@@ -67,7 +68,7 @@ public class CommandGit {
                         .then(Commands.literal("apply")
                                 .then(Commands.argument("hash", new CommitArgumentType())
                                         .executes(ctx -> {
-                                            if (McGit.getGitCore().getState().isBusyAndNotify()) return 1;
+                                            if (McGit.getGitCore().getState().isBusyAndNotify(Messenger.create(ctx))) return 1;
                                             Commit commit = CommitArgumentType.getCommit(ctx, "hash");
                                             commit.apply();
                                             return 1;
@@ -75,7 +76,7 @@ public class CommandGit {
                         .then(Commands.literal("revert")
                                 .then(Commands.argument("hash", new CommitArgumentType())
                                         .executes(ctx -> {
-                                            if (McGit.getGitCore().getState().isBusyAndNotify()) return 1;
+                                            if (McGit.getGitCore().getState().isBusyAndNotify(Messenger.create(ctx))) return 1;
                                             Commit commit = CommitArgumentType.getCommit(ctx, "hash");
                                             commit.revert();
                                             return 1;
@@ -97,8 +98,9 @@ public class CommandGit {
                             .executes(CommandGit::branchCheckout)))
                 .then(Commands.literal("list")
                         .executes(ctx -> {
+                            Messenger messenger = Messenger.create(ctx);
                             for (Branch branch : McGit.getGitCore().getBranchHandler().getFoundBranches()) {
-                                ctx.getSource().getSender().sendMessage(branch.getName());
+                                messenger.sendInfo(branch.getName());
                             }
                             return 1;
                         }));
@@ -112,17 +114,18 @@ public class CommandGit {
 
                             if (!merge.resolved()) {
                                 if (!merge.resolved(merge.peekConflict().location())) {
-                                    Broadcast.message("Current conflict is not resolved.");
+                                    Messenger.create(ctx).send(Messages.CONFLICT_NOT_RESOLVED);
                                     return 1;
                                 }
                                 merge.popConflict();
                             }
 
                             if (merge.resolved()) {
+                                Messenger messenger = Messenger.create(ctx);
                                 try {
-                                    merge.commit();
+                                    merge.commit(messenger);
                                 } catch (IOException e) {
-                                    Broadcast.message(e);
+                                    messenger.send(Messages.MERGE_SAVE_FAILED, e);
                                 }
                                 McGit.getGitCore().getState().setIdle();
                                 return 1;
@@ -147,38 +150,41 @@ public class CommandGit {
     }
 
     private static int branchCreate(CommandContext<CommandSourceStack> ctx) {
-        if (McGit.getGitCore().getState().isBusyAndNotify()) return 1;
+        Messenger messenger = Messenger.create(ctx);
+        if (McGit.getGitCore().getState().isBusyAndNotify(messenger)) return 1;
 
         String name = StringArgumentType.getString(ctx, "name");
         BranchHandler branches = McGit.getGitCore().getBranchHandler();
 
         if (branches.getBranchByName(name).isPresent()) {
-            ctx.getSource().getSender().sendMessage("A branch with this name already exists!");
+            messenger.send(Messages.BRANCH_ALREADY_EXISTS);
             return 1;
         }
 
-        branches.split(name);
+        branches.split(name, messenger);
         return 1;
     }
 
     private static int branchCheckout(CommandContext<CommandSourceStack> ctx) {
-        if (McGit.getGitCore().getState().isBusyAndNotify()) return 1;
-        if (!requireCleanDiff()) return 1;
+        Messenger messenger = Messenger.create(ctx);
+        if (McGit.getGitCore().getState().isBusyAndNotify(messenger)) return 1;
+        if (!requireCleanDiff(messenger)) return 1;
 
         Branch branch = BranchArgumentType.getBranch(ctx, "branch");
         GitCore core = McGit.getGitCore();
         BranchHandler branches = core.getBranchHandler();
         try {
-            core.getBranchOperations().checkout(branches, branch);
+            core.getBranchOperations().checkout(branches, branch, messenger);
         } catch (McGitException e) {
-            e.broadcast();
+            e.send(messenger);
         }
         return 1;
     }
 
     private static int merge(CommandContext<CommandSourceStack> ctx) {
-        if (McGit.getGitCore().getState().isBusyAndNotify()) return 1;
-        if (!requireCleanDiff()) return 1;
+        Messenger messenger = Messenger.create(ctx);
+        if (McGit.getGitCore().getState().isBusyAndNotify(messenger)) return 1;
+        if (!requireCleanDiff(messenger)) return 1;
 
         GitCore core = McGit.getGitCore();
         Branch target = BranchArgumentType.getBranch(ctx, "branch");
@@ -190,24 +196,25 @@ public class CommandGit {
             );
 
             if (merge.resolved()) {
-                merge.commit();
+                merge.commit(messenger);
                 return 1;
             }
 
-            Broadcast.message("There are merge conflicts! Use /git conflict tp and /git conflict resolve");
+            messenger.send(Messages.MERGE_CONFLICTS);
 
             McGit.getGitCore().getState().setActiveMerge(merge);
         } catch (McGitException e) {
-            e.broadcast();
+            e.send(messenger);
         } catch (IOException e) {
-            Broadcast.message("Failed to save merge commit.", e);
+            messenger.send(Messages.MERGE_SAVE_FAILED, e);
         }
         return 1;
     }
 
     private static int rebase(CommandContext<CommandSourceStack> ctx) {
-        if (McGit.getGitCore().getState().isBusyAndNotify()) return 1;
-        if (!requireCleanDiff()) return 1;
+        Messenger messenger = Messenger.create(ctx);
+        if (McGit.getGitCore().getState().isBusyAndNotify(messenger)) return 1;
+        if (!requireCleanDiff(messenger)) return 1;
 
         GitCore core = McGit.getGitCore();
         Branch target = BranchArgumentType.getBranch(ctx, "branch");
@@ -217,43 +224,46 @@ public class CommandGit {
                     target,
                     ctx.getSource().getSender().getName()
             );
-            Broadcast.message("Rebase complete.", "Commit: " + rebaseHash);
+            messenger.send(Messages.REBASE_COMPLETE);
+            messenger.sendInfo("   Commit: " + rebaseHash);
         } catch (McGitException e) {
-            e.broadcast();
+            e.send(messenger);
         } catch (IOException e) {
-            Broadcast.message("Failed to save rebase commit.", e);
+            messenger.send(Messages.REBASE_SAVE_FAILED, e);
         }
         return 1;
     }
 
-    private static boolean requireCleanDiff() {
+    private static boolean requireCleanDiff(Messenger messenger) {
         if (McGit.getGitCore().getCurrentDiff().getBlockModifications().isEmpty()) return true;
 
-        Broadcast.message("Commit or discard active changes before changing branch history.");
+        messenger.send(Messages.REQUIRE_CLEAN_DIFF);
         return false;
     }
 
     private static int commit(CommandContext<CommandSourceStack> ctx) {
-        if (McGit.getGitCore().getState().isBusyAndNotify()) return 1;
+        Messenger messenger = Messenger.create(ctx);
+        if (McGit.getGitCore().getState().isBusyAndNotify(messenger)) return 1;
 
         String message = StringArgumentType.getString(ctx, "message");
         GitCore core = McGit.getGitCore();
         try {
-            core.getCurrentDiff().commit(message, ctx.getSource().getSender().getName());
+            core.getCurrentDiff().commit(message, ctx.getSource().getSender().getName(), messenger);
         } catch (IOException e) {
-            ctx.getSource().getSender().sendMessage("Failed to save commit.");
+            messenger.send(Messages.COMMIT_SAVE_FAILED);
         }
         return 1;
     }
 
     private static int log(CommandContext<CommandSourceStack> ctx) {
+        Messenger messenger = Messenger.create(ctx);
         CommitHash head = McGit.getGitCore().getBranchHandler().getBranch().getHeadHash();
-        Broadcast.message("Commit log for " + McGit.getGitCore().getBranchHandler().getBranch().getName());
-        commitLog(head, "", new HashSet<>());
+        messenger.sendInfo("Commit log for " + McGit.getGitCore().getBranchHandler().getBranch().getName());
+        commitLog(messenger, head, "", new HashSet<>());
         return 1;
     }
 
-    private static void commitLog(CommitHash hash, String prefix, Set<CommitHash> parentTrail) {
+    private static void commitLog(Messenger messenger, CommitHash hash, String prefix, Set<CommitHash> parentTrail) {
         ArrayList<Commit> history = new ArrayList<>();
         try {
             Commit commit;
@@ -268,48 +278,49 @@ public class CommandGit {
                 } else break;
             } while (commit.getParents().length > 0);
         } catch (CommitNotFoundException e) {
-            e.broadcast();
+            e.send(messenger);
         }
 
         for (int i = 0; i < history.size(); i++) {
             String branch = i == history.size() - 1 ? "└ " : "├ ";
             String branch2 = i == history.size() - 1 ? "     " : "│   ";
             Commit commit2 = history.get(i);
-            Broadcast.message(prefix + branch + commit2.getMessage());
-            Broadcast.message(prefix + branch2 + commit2.getHash());
+            messenger.sendInfo(prefix + branch + commit2.getMessage());
+            messenger.sendInfo(prefix + branch2 + commit2.getHash());
             if (commit2.getParents().length > 1) {
                 for (int j = 1; j < commit2.getParents().length; j++) {
                     Set<CommitHash> trail = history.stream().map(Commit::getHash).collect(Collectors.toSet());
                     trail.addAll(parentTrail);
-                    commitLog(commit2.getParents()[j], prefix + branch2, trail);
+                    commitLog(messenger, commit2.getParents()[j], prefix + branch2, trail);
                 }
             }
         }
     }
 
     private static int rollback(CommandContext<CommandSourceStack> ctx) {
-        if (McGit.getGitCore().getState().isBusyAndNotify()) return 1;
+        Messenger messenger = Messenger.create(ctx);
+        if (McGit.getGitCore().getState().isBusyAndNotify(messenger)) return 1;
 
         Commit commit = CommitArgumentType.getCommit(ctx, "commit");
         Branch branch = McGit.getGitCore().getBranchHandler().getBranch();
 
-        Broadcast.message("Rolling " + branch.getName() + " back to " + commit);
+        messenger.sendInfo("Rolling " + branch.getName() + " back to " + commit);
 
         ArrayList<CommitHash> commits = null;
         try {
             commits = branch.getTrail(commit.getHash());
         } catch (McGitException e) {
-            e.broadcast();
+            e.send(messenger);
             return 1;
         }
 
         for (CommitHash commitHash : commits) {
             try {
                 Commit c = Commit.fromHash(commitHash);
-                Broadcast.message(" | -" + c);
+                messenger.sendInfo(" | -" + c);
                 c.revert();
             } catch (CommitNotFoundException e) {
-                e.broadcast();
+                e.send(messenger);
                 return 1;
             }
         }
@@ -318,28 +329,29 @@ public class CommandGit {
         return 1;
     }
 
-    private static void resetView() {
+    private static void resetView(Messenger messenger) {
         if (!McGit.getGitCore().getState().equals(GitState.VIEW)) return;
 
-        Broadcast.message("Returning to branch head.");
+        messenger.send(Messages.BRANCH_RETURN_HEAD);
         for (Commit viewingCommit : McGit.getGitCore().getState().getViewingCommits().reversed()) {
-            Broadcast.message(" | +" + viewingCommit);
+            messenger.sendInfo(" | +" + viewingCommit);
             viewingCommit.apply();
         }
         McGit.getGitCore().getState().setIdle();
     }
 
     private static int view(CommandContext<CommandSourceStack> ctx) {
+        Messenger messenger = Messenger.create(ctx);
         if (McGit.getGitCore().getState().equals(GitState.VIEW)) {
-            resetView();
+            resetView(messenger);
             return 1;
         }
 
-        if (McGit.getGitCore().getState().isBusyAndNotify()) return 1;
+        if (McGit.getGitCore().getState().isBusyAndNotify(messenger)) return 1;
 
         Commit commit = CommitArgumentType.getCommit(ctx, "commit");
         Branch branch = McGit.getGitCore().getBranchHandler().getBranch();
-        Broadcast.message("Viewing " + commit);
+        messenger.sendInfo("Viewing " + commit);
 
         ArrayList<Commit> commitList = new ArrayList<>();
 
@@ -347,18 +359,18 @@ public class CommandGit {
         try {
             commits = branch.getTrail(commit.getHash());
         } catch (McGitException e) {
-            e.broadcast();
+            e.send(messenger);
             return 1;
         }
 
         for (CommitHash commitHash : commits) {
             try {
                 Commit c = Commit.fromHash(commitHash);
-                Broadcast.message(" | -" + c);
+                messenger.sendInfo(" | -" + c);
                 commitList.add(c);
                 c.revert();
             } catch (CommitNotFoundException e) {
-                e.broadcast();
+                e.send(messenger);
                 return 1;
             }
         }

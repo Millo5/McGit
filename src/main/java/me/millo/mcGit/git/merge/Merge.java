@@ -8,8 +8,9 @@ import me.millo.mcGit.git.commit.CommitHash;
 import me.millo.mcGit.git.diff.BlockChange;
 import me.millo.mcGit.git.diff.BlockModification;
 import me.millo.mcGit.listeners.InteractionListener;
-import me.millo.mcGit.utility.Broadcast;
 import me.millo.mcGit.utility.WorldUtil;
+import me.millo.mcGit.utility.messenger.Messages;
+import me.millo.mcGit.utility.messenger.Messenger;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -48,7 +49,7 @@ public class Merge {
         return conflicts.isEmpty();
     }
 
-    public CommitHash commit() throws IOException {
+    public CommitHash commit(Messenger messenger) throws IOException {
         if (!resolved()) throw new IllegalStateException("Merge must be resolved before commiting.");
 
         hideCurrentConflict();
@@ -78,7 +79,8 @@ public class Merge {
         current.setHead(commit.getHash());
         McGit.getGitCore().getBranchHandler().save();
 
-        Broadcast.message("Merge complete.", "Commit: " + commit.getHash());
+        messenger.send(Messages.MERGE_COMPLETE);
+        messenger.sendInfo("   Commit: " + commit.getHash());
         return commit.getHash();
     }
 

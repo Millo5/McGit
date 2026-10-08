@@ -4,8 +4,9 @@ import com.google.gson.*;
 import me.millo.mcGit.McGit;
 import me.millo.mcGit.exceptions.CommitNotFoundException;
 import me.millo.mcGit.files.FileBank;
-import me.millo.mcGit.utility.Broadcast;
 import me.millo.mcGit.utility.WorldUtil;
+import me.millo.mcGit.utility.messenger.Messages;
+import me.millo.mcGit.utility.messenger.Messenger;
 import org.bukkit.Material;
 
 import java.io.FileReader;
@@ -52,7 +53,7 @@ public class Commit {
         Path target = FileBank.getCommitFolder().resolve(hash.toString());
 
         if (target.toFile().exists()) {
-            Broadcast.message("Commit " + hash + " already exists!");
+            Messenger.createOps().send(Messages.COMMIT_ALREADY_EXISTS, hash);
         }
 
         Files.createDirectories(target.getParent());
@@ -87,7 +88,7 @@ public class Commit {
         Path target = FileBank.getCommitFolder().resolve(hash.toString());
 
         if (!target.toFile().exists()) {
-            Broadcast.message("Commit " + hash + " does not exist!");
+            Messenger.createOps().send(Messages.COMMIT_DOES_NOT_EXIST, hash);
             throw new CommitNotFoundException(hash);
         }
 
@@ -112,7 +113,7 @@ public class Commit {
                     changes
             );
         } catch (IOException e) {
-            Broadcast.message("Failed to load commit", e);
+            Messenger.createOps().send(Messages.COMMIT_LOAD_FAILED, e);
             throw new RuntimeException();
         }
     }

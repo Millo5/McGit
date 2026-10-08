@@ -2,7 +2,8 @@ package me.millo.mcGit.git;
 
 import me.millo.mcGit.git.commit.Commit;
 import me.millo.mcGit.git.merge.Merge;
-import me.millo.mcGit.utility.Broadcast;
+import me.millo.mcGit.utility.messenger.Messages;
+import me.millo.mcGit.utility.messenger.Messenger;
 
 import java.util.ArrayList;
 
@@ -17,9 +18,13 @@ public class GitStateHandler {
     }
 
     public boolean isBusyAndNotify() {
+        return isBusyAndNotify(Messenger.createAll());
+    }
+
+    public boolean isBusyAndNotify(Messenger messenger) {
         if (isIdle()) return false;
 
-        Broadcast.message("Git State is required to be idle. Current: " + state);
+        messenger.send(Messages.GIT_STATE_BUSY, state);
 
         return true;
     }

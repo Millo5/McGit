@@ -4,7 +4,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import me.millo.mcGit.files.FileBank;
-import me.millo.mcGit.utility.Broadcast;
+import me.millo.mcGit.utility.messenger.Messages;
+import me.millo.mcGit.utility.messenger.Messenger;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,12 +32,16 @@ public class BranchHandler {
     }
 
     public void setBranch(Branch branch) {
+        setBranch(branch, Messenger.createAll());
+    }
+
+    public void setBranch(Branch branch, Messenger messenger) {
         this.branch = branch;
 
         // TODO: resolve commits
 
-        Broadcast.message("Now on branch: " + branch.getName(),
-                "Head: " + branch.getHeadHash());
+        messenger.send(Messages.BRANCH_CHANGED, branch.getName());
+        messenger.send(Messages.BRANCH_HEAD, branch.getHeadHash());
     }
 
     public Optional<Branch> getBranchByName(String name) {
@@ -47,9 +52,13 @@ public class BranchHandler {
     }
 
     public void split(String name) {
+        split(name, Messenger.createAll());
+    }
+
+    public void split(String name, Messenger messenger) {
         Branch newBranch = new Branch(name, branch.getHeadHash());
         foundBranches.add(newBranch);
-        setBranch(newBranch);
+        setBranch(newBranch, messenger);
         save();
     }
 
@@ -80,7 +89,7 @@ public class BranchHandler {
                             .toJson(root)
             );
         } catch (IOException e) {
-            Broadcast.message("Failed to save branches", e);
+            Messenger.createOps().send(Messages.BRANCH_SAVE_FAILED, e);
             throw new RuntimeException("Failed to save branches", e);
         }
     }
