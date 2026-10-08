@@ -11,6 +11,7 @@ import me.millo.mcGit.git.merge.BlockConflict;
 import me.millo.mcGit.git.merge.Merge;
 import me.millo.mcGit.git.merge.MergeBuilder;
 import me.millo.mcGit.utility.WorldUtil;
+import me.millo.mcGit.utility.messenger.Messenger;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -21,16 +22,20 @@ import java.util.*;
 public class BranchOperations {
 
     public void checkout(BranchHandler branches, Branch target) throws McGitException {
+        checkout(branches, target, Messenger.createAll());
+    }
+
+    public void checkout(BranchHandler branches, Branch target, Messenger messenger) throws McGitException {
         Branch current = branches.getBranch();
         if (current == target || current.getName().equals(target.getName())) {
-            branches.setBranch(target);
+            branches.setBranch(target, messenger);
             return;
         }
 
         CommitHash base = findMutualParent(current, target);
         applyChanges(collapseChanges(base, current.getHeadHash()), false);
         applyChanges(collapseChanges(base, target.getHeadHash()), true);
-        branches.setBranch(target);
+        branches.setBranch(target, messenger);
         branches.save();
     }
 

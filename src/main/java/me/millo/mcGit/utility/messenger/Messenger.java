@@ -20,6 +20,13 @@ public class Messenger {
         return new Messenger(new CommandSender[]{ctx.getSource().getSender()});
     }
 
+    public static Messenger createAll() {
+        return new Messenger(Bukkit.getServer().getOnlinePlayers().stream()
+                .map(player -> (CommandSender) player)
+                .toArray(CommandSender[]::new)
+        );
+    }
+
     public static Messenger createOps() {
         return new Messenger(Bukkit.getOperators().stream()
                 .filter(OfflinePlayer::isOnline)
@@ -34,6 +41,14 @@ public class Messenger {
 
     public void send(Message message, Object... arguments) {
         send(message.build(prefix(), arguments));
+    }
+
+    public void sendInfo(String message) {
+        send(Message.info(message));
+    }
+
+    public void sendError(String message) {
+        send(Message.error(message));
     }
 
     public void send(Component message) {
