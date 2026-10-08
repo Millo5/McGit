@@ -51,6 +51,11 @@ public class WorldDiff {
         BlockModification mod = blockModifications.get(location);
         changesSinceLastSave = true;
         if (mod != null) {
+            if (mod.getOldBlockString().equals(WorldUtil.blockString(block))) {
+                blockModifications.remove(location);
+                return;
+            }
+
             mod.setNewBlock(block);
             return;
         }

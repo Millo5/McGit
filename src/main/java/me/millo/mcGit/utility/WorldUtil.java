@@ -21,7 +21,7 @@ public class WorldUtil {
     }
 
     public static String blockString(BlockData block) {
-        return block == null ? "air" : block.getAsString(true);
+        return block == null ? "minecraft:air" : block.getAsString(true);
     }
 
 }

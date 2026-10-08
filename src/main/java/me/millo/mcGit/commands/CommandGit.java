@@ -15,6 +15,7 @@ import me.millo.mcGit.git.branch.BranchHandler;
 import me.millo.mcGit.git.commit.Commit;
 import me.millo.mcGit.git.commit.CommitHash;
 import me.millo.mcGit.git.merge.Merge;
+import me.millo.mcGit.gui.GitMainMenu;
 import me.millo.mcGit.utility.messenger.Messages;
 import me.millo.mcGit.utility.messenger.Messenger;
 import org.bukkit.entity.Player;
@@ -32,6 +33,10 @@ public class CommandGit {
         dispatcher.register(
                 Commands.literal("git")
                         .executes(ctx -> {
+                            if (ctx.getSource().getSender() instanceof Player player) {
+                                new GitMainMenu().open(player);
+                                return 1;
+                            }
                             Messenger.create(ctx).send(Messages.BASIC_COMMAND);
                             return 1;
                         })
