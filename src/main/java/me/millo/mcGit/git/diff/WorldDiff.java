@@ -13,6 +13,8 @@ import me.millo.mcGit.git.commit.CommitChanges;
 import me.millo.mcGit.git.commit.CommitHash;
 import me.millo.mcGit.utility.Broadcast;
 import me.millo.mcGit.utility.WorldUtil;
+import me.millo.mcGit.utility.messenger.Messages;
+import me.millo.mcGit.utility.messenger.Messenger;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -116,9 +118,9 @@ public class WorldDiff {
                             .create()
                             .toJson(root)
             );
-            Broadcast.message("Saved diff");
+            Messenger.createOps().send(Messages.DIFF_SAVED);
         } catch (IOException e) {
-            Broadcast.message("Failed to save diff", e);
+            Messenger.createOps().send(Messages.DIFF_SAVED_FAILED, e);
         }
     }
 

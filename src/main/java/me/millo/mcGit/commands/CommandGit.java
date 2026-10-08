@@ -16,6 +16,8 @@ import me.millo.mcGit.git.commit.Commit;
 import me.millo.mcGit.git.commit.CommitHash;
 import me.millo.mcGit.git.merge.Merge;
 import me.millo.mcGit.utility.Broadcast;
+import me.millo.mcGit.utility.messenger.Messages;
+import me.millo.mcGit.utility.messenger.Messenger;
 import org.bukkit.entity.Player;
 
 import java.io.IOException;
@@ -112,7 +114,7 @@ public class CommandGit {
 
                             if (!merge.resolved()) {
                                 if (!merge.resolved(merge.peekConflict().location())) {
-                                    Broadcast.message("Current conflict is not resolved.");
+                                    Messenger.create(ctx).send(Messages.CONFLICT_NOT_RESOLVED);
                                     return 1;
                                 }
                                 merge.popConflict();
