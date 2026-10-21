@@ -5,6 +5,7 @@ import me.millo.mcGit.commands.CommandGit;
 import me.millo.mcGit.git.GitCore;
 import me.millo.mcGit.git.commit.serializer.ChangesSerializer;
 import me.millo.mcGit.git.commit.serializer.ImprovedChangesSerializer;
+import me.millo.mcGit.gui.GitMenuListener;
 import me.millo.mcGit.listeners.BlockChangeListener;
 import me.millo.mcGit.listeners.InteractionListener;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -21,6 +22,7 @@ public final class McGit extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new BlockChangeListener(gitCore), this);
         getServer().getPluginManager().registerEvents(new InteractionListener(), this);
+        getServer().getPluginManager().registerEvents(new GitMenuListener(), this);
 
         this.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             CommandGit.register(event.registrar());
